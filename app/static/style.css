@@ -1,0 +1,36 @@
+/* Additional styling for Elite Financial Advisor AI */
+
+.profit-highlight {
+    background: linear-gradient(45deg, #00ff88, #00cc6a);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+}
+
+.money-animation {
+    animation: money-pulse 2s ease-in-out infinite;
+}
+
+@keyframes money-pulse {
+    0%, 100% { 
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+}
+
+.elite-gradient {
+    background: linear-gradient(135deg, #00ff88 0%, #1a1a2e 50%, #16213e 100%);
+    background-size: 200% 200%;
+    animation: elite-gradient 3s ease infinite;
+}
+
+@keyframes elite-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
