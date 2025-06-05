@@ -7,11 +7,13 @@ import uvicorn
 from typing import List, Dict, Any
 import asyncio
 from datetime import datetime
+from sqlalchemy.orm import Session
 
 from .services.ollama_service import OllamaService
 from .services.financial_advisor import FinancialAdvisor
 from .services.news_collector import NewsCollector
 from .services.portfolio_manager import PortfolioManager
+from .services.stock_data_collector import StockDataCollector
 from .models.schemas import (
     PortfolioRequest, 
     AdviceRequest, 
@@ -19,6 +21,11 @@ from .models.schemas import (
     AdviceResponse,
     NewsResponse
 )
+from . import models
+from .database import engine, get_db
+
+# Create database tables
+models.database_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Elite Financial Advisor AI",
@@ -111,15 +118,32 @@ async def get_market_news():
 async def get_default_portfolio():
     """Get the default aggressive portfolio allocation"""
     return {
-        "allocations": [
-            {"name": "Broad U.S. Equities", "percentage": 40, "etfs": ["VTI", "SCHB"]},
-            {"name": "U.S. Energy Sector", "percentage": 20, "etfs": ["XLE", "AMLP"]},
-            {"name": "Global Infrastructure", "percentage": 15, "etfs": ["IGF", "BIPC"]},
-            {"name": "Technology Growth", "percentage": 15, "etfs": ["QQQ", "VGT"]},
-            {"name": "Real Estate", "percentage": 5, "etfs": ["VNQ"]},
-            {"name": "Speculative Crypto", "percentage": 5, "description": "High-risk, high-reward"}
-        ],
-        "philosophy": "Aggressive growth with diversified risk. We're here to make BANK! 💰"
+        "allocation": {
+            "US_Equities": {
+                "percentage": 40,
+                "etfs": ["VTI", "SCHB"]
+            },
+            "Energy_Sector": {
+                "percentage": 20,
+                "etfs": ["XLE", "AMLP"]
+            },
+            "Global_Infrastructure": {
+                "percentage": 15,
+                "etfs": ["IGF", "BIPC"]
+            },
+            "Technology": {
+                "percentage": 15,
+                "etfs": ["QQQ", "VGT"]
+            },
+            "Real_Estate": {
+                "percentage": 5,
+                "etfs": ["VNQ"]
+            },
+            "Crypto": {
+                "percentage": 5,
+                "exchanges": ["Coinbase", "Kraken"]
+            }
+        }
     }
 
 @app.post("/api/rebalance")
@@ -136,6 +160,80 @@ async def rebalance_portfolio(portfolio_data: PortfolioRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Rebalancing failed: {str(e)}")
+
+@app.post("/api/portfolio")
+def create_portfolio(name: str, db: Session = Depends(get_db)):
+    portfolio = models.database_models.Portfolio(name=name)
+    db.add(portfolio)
+    db.commit()
+    db.refresh(portfolio)
+    return portfolio
+
+@app.get("/api/news/store")
+def store_news_in_db(db: Session = Depends(get_db)):
+    news_collector = NewsCollector()
+    news_items = news_collector.get_latest_news()
+    
+    # Store news items in database
+    for item in news_items:
+        db_item = models.database_models.NewsItem(**item.dict())
+        db.add(db_item)
+    db.commit()
+    
+    return news_items
+
+@app.get("/api/portfolio/{portfolio_id}/holdings")
+def get_portfolio_holdings(portfolio_id: int, db: Session = Depends(get_db)):
+    portfolio = db.query(models.database_models.Portfolio).filter(models.database_models.Portfolio.id == portfolio_id).first()
+    if not portfolio:
+        return {"error": "Portfolio not found"}
+    return portfolio.holdings
+
+@app.get("/api/stock/{symbol}/fundamentals")
+def get_stock_fundamentals(symbol: str, limit: int = 10):
+    """Get latest fundamental data for a specific stock"""
+    collector = StockDataCollector()
+    data = collector.get_latest_fundamentals(symbol.upper(), limit)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No data found for {symbol}")
+    return {
+        "symbol": symbol.upper(),
+        "records_count": len(data),
+        "data": data
+    }
+
+@app.get("/api/stocks/fundamentals")
+def get_all_stock_fundamentals(limit: int = 5):
+    """Get latest fundamental data for all tracked stocks"""
+    collector = StockDataCollector()
+    data = collector.get_all_latest_fundamentals(limit)
+    return {
+        "tracked_stocks": list(data.keys()),
+        "data": data
+    }
+
+@app.post("/api/stocks/collect")
+def collect_stock_data_now(symbols: list = None):
+    """Manually trigger stock data collection"""
+    collector = StockDataCollector()
+    if symbols is None:
+        symbols = ["AAPL", "MSFT", "GOOGL", "TSLA"]
+    
+    results = collector.collect_and_store_fundamentals(symbols)
+    return {
+        "message": "Data collection completed",
+        "results": results
+    }
+
+@app.get("/api/test/fundamentals")
+def test_fundamentals_endpoint():
+    """Test endpoint to debug routing"""
+    try:
+        collector = StockDataCollector()
+        data = collector.get_latest_fundamentals('AAPL', 1)
+        return {"status": "success", "data": data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
