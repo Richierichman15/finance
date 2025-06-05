@@ -12,12 +12,15 @@ logger = logging.getLogger(__name__)
 
 class StockDataCollector:
     def __init__(self):
-        # Default stocks to track - you can modify these
+        # Updated portfolio with ETFs and crypto
         self.tracked_stocks = [
-            "AAPL",  # Apple
-            "MSFT",  # Microsoft  
-            "GOOGL", # Google
-            "TSLA"   # Tesla
+            "SPY",     # S&P 500 ETF
+            "XLE",     # Energy Sector SPDR
+            "GLD",     # SPDR Gold Shares
+            "QQQ",     # Invesco QQQ Trust (NASDAQ)
+            "VTI",     # Vanguard Total Stock Market ETF
+            "BTC-USD", # Bitcoin
+            "XRP-USD"  # XRP (Ripple)
         ]
     
     def collect_and_store_fundamentals(self, symbols: Optional[List[str]] = None) -> Dict[str, Any]:
