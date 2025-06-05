@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Financial Advisor AI - Make BANK! 💰</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .status {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-item {
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 136, 0.2);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .main-container {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 2rem;
+            height: calc(100vh - 100px);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #00ff88;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .portfolio-overview {
+            grid-column: 1 / 3;
+        }
+
+        .ai-advisor {
+            grid-row: 1 / 3;
+        }
+
+        .market-news {
+            grid-column: 1 / 3;
+        }
+
+        .allocation-chart {
+            height: 200px;
+            position: relative;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .chat-container {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            max-height: 200px;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 10px;
+        }
+
+        .message.ai {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 3px solid #00ff88;
+        }
+
+        .message.user {
+            background: rgba(255, 255, 255, 0.1);
+            text-align: right;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+        }
+
+        .chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .news-item {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border-left: 3px solid #00ff88;
+        }
+
+        .news-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .news-summary {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .opportunity {
+            background: rgba(255, 215, 0, 0.2);
+            border-left: 3px solid #ffd700;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .profit-indicator {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .loss-indicator {
+            color: #ff4757;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.7;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #00ff88;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pulse-button {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(6, auto);
+                gap: 1rem;
+            }
+            
+            .portfolio-overview, .market-news {
+                grid-column: 1;
+            }
+            
+            .ai-advisor {
+                grid-row: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <i class="fas fa-chart-line"></i> Elite Financial Advisor AI
+        </div>
+        <div class="status">
+            <div class="status-item">
+                <i class="fas fa-robot"></i> AI Online
+            </div>
+            <div class="status-item">
+                <i class="fas fa-signal"></i> Markets Live
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Portfolio Overview -->
+        <div class="card portfolio-overview">
+            <div class="card-title">
+                <i class="fas fa-briefcase"></i> Portfolio Command Center
+            </div>
+            <div class="allocation-chart">
+                <canvas id="allocationChart"></canvas>
+            </div>
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="portfolioValue">$0</div>
+                    <div class="metric-label">Total Value</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value profit-indicator" id="dailyReturn">+0%</div>
+                    <div class="metric-label">Daily Return</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="riskScore">0</div>
+                    <div class="metric-label">Risk Score</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="profitPotential">HIGH</div>
+                    <div class="metric-label">Profit Potential</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Advisor Chat -->
+        <div class="card ai-advisor">
+            <div class="card-title">
+                <i class="fas fa-brain"></i> Your Elite Advisor
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai">
+                        <strong>Elite Advisor:</strong> Welcome! I'm here to make you SERIOUS MONEY! 💰 
+                        Ask me anything about maximizing your profits or optimizing your portfolio. 
+                        Let's turn your portfolio into a MONEY MACHINE! 🚀
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Ask your elite advisor..." onkeypress="handleChatKeypress(event)">
+                    <button class="btn pulse-button" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Opportunities -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-rocket"></i> Profit Opportunities
+            </div>
+            <div id="opportunities">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Scanning markets for profit opportunities...
+                </div>
+            </div>
+        </div>
+
+        <!-- Market News -->
+        <div class="card market-news">
+            <div class="card-title">
+                <i class="fas fa-newspaper"></i> Market Intelligence
+            </div>
+            <div id="marketNews">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading market intelligence...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allocationChart;
+        let portfolioData = {
+            current_value: 50000,
+            allocations: {
+                "US_Equities": 40,
+                "Energy": 20,
+                "Infrastructure": 15,
+                "Technology": 15,
+                "Real_Estate": 5,
+                "Crypto": 5
+            },
+            cash_available: 5000
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAllocationChart();
+            loadMarketNews();
+            loadOpportunities();
+            updatePortfolioMetrics();
+        });
+
+        function initializeAllocationChart() {
+            const ctx = document.getElementById('allocationChart').getContext('2d');
+            
+            allocationChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(portfolioData.allocations),
+                    datasets: [{
+                        data: Object.values(portfolioData.allocations),
+                        backgroundColor: [
+                            '#00ff88',
+                            '#ff6b6b',
+                            '#4ecdc4',
+                            '#45b7d1',
+                            '#96ceb4',
+                            '#ffeaa7'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadMarketNews() {
+            try {
+                const response = await axios.get('/api/news');
+                const newsContainer = document.getElementById('marketNews');
+                
+                let newsHtml = '';
+                response.data.headlines.slice(0, 5).forEach(item => {
+                    newsHtml += `
+                        <div class="news-item">
+                            <div class="news-title">${item.title}</div>
+                            <div class="news-summary">${item.summary}</div>
+                        </div>
+                    `;
+                });
+                
+                newsContainer.innerHTML = newsHtml;
+            } catch (error) {
+                document.getElementById('marketNews').innerHTML = `
+                    <div class="news-item">
+                        <div class="news-title">Market Data Temporarily Unavailable</div>
+                        <div class="news-summary">Unable to fetch latest market news. Please try again later.</div>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadOpportunities() {
+            try {
+                const response = await axios.get('/api/news');
+                const opportunitiesContainer = document.getElementById('opportunities');
+                
+                let opportunitiesHtml = '';
+                response.data.recommendations.slice(0, 3).forEach(opportunity => {
+                    opportunitiesHtml += `
+                        <div class="opportunity">
+                            <i class="fas fa-bullseye"></i> ${opportunity}
+                        </div>
+                    `;
+                });
+                
+                opportunitiesContainer.innerHTML = opportunitiesHtml;
+            } catch (error) {
+                document.getElementById('opportunities').innerHTML = `
+                    <div class="opportunity">
+                        <i class="fas fa-exclamation-triangle"></i> Opportunities scanner offline. Elite advisor is working on it!
+                    </div>
+                `;
+            }
+        }
+
+        function updatePortfolioMetrics() {
+            document.getElementById('portfolioValue').textContent = 
+                `$${portfolioData.current_value.toLocaleString()}`;
+            
+            // Simulate daily return
+            const dailyReturn = (Math.random() * 4 - 1).toFixed(2);
+            const returnElement = document.getElementById('dailyReturn');
+            returnElement.textContent = `${dailyReturn > 0 ? '+' : ''}${dailyReturn}%`;
+            returnElement.className = dailyReturn > 0 ? 'metric-value profit-indicator' : 'metric-value loss-indicator';
+            
+            document.getElementById('riskScore').textContent = '75';
+            document.getElementById('profitPotential').textContent = 'HIGH';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Add loading message
+            const loadingId = addMessage('Analyzing... 🧠', 'ai', true);
+            
+            try {
+                const response = await axios.post('/api/advice', {
+                    question: message,
+                    portfolio_value: portfolioData.current_value,
+                    risk_tolerance: 'aggressive'
+                });
+                
+                // Remove loading message and add AI response
+                document.getElementById(loadingId).remove();
+                addMessage(response.data.advice, 'ai');
+                
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                addMessage('Sorry, I\'m having trouble connecting to my AI brain right now. Try asking about portfolio optimization or market strategies!', 'ai');
+            }
+        }
+
+        function addMessage(text, sender, isLoading = false) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            const messageId = 'msg_' + Date.now();
+            
+            messageDiv.id = messageId;
+            messageDiv.className = `message ${sender}`;
+            
+            if (sender === 'ai') {
+                messageDiv.innerHTML = `<strong>Elite Advisor:</strong> ${text}`;
+            } else {
+                messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return messageId;
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            loadMarketNews();
+            loadOpportunities();
+            updatePortfolioMetrics();
+        }, 30000);
+    </script>
+</body>
+</html>

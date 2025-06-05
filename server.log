@@ -1,0 +1,15 @@
+nohup: ignoring input
+INFO:     Started server process [8993]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+❌ Failed to connect to Ollama: All connection attempts failed
+Make sure Ollama is running: 'ollama serve'
+🚀 Elite Financial Advisor AI is ready to make you RICH!
+INFO:     127.0.0.1:35548 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41282 - "GET /api/portfolio?current_value=50000&cash_available=5000 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:41288 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49192 - "GET /api/health HTTP/1.1" 200 OK
+Error fetching news from reuters_finance: Cannot connect to host feeds.reuters.com:443 ssl:default [Name or service not known]
+INFO:     127.0.0.1:49206 - "GET /api/news HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41234 - "GET /api/portfolio/default HTTP/1.1" 200 OK
