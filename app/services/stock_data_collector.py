@@ -20,7 +20,8 @@ class StockDataCollector:
             "QQQ",     # Invesco QQQ Trust (NASDAQ)
             "VTI",     # Vanguard Total Stock Market ETF
             "BTC-USD", # Bitcoin
-            "XRP-USD"  # XRP (Ripple)
+            "XRP-USD", # XRP (Ripple)
+            "ETH-USD"  # Ethereum
         ]
     
     def collect_and_store_fundamentals(self, symbols: Optional[List[str]] = None) -> Dict[str, Any]:
