@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(__file__))
 
 def main():
     parser = argparse.ArgumentParser(description='Ultra-Aggressive Trading System')
-    parser.add_argument('--system', choices=['pure5k', 'enhanced', 'dashboard'], 
+    parser.add_argument('--system', choices=['pure5k', 'pure5kv3', 'enhanced', 'dashboard'], 
                        default='pure5k', help='Trading system to run')
     parser.add_argument('--days', type=int, default=30, help='Days to backtest')
     parser.add_argument('--balance', type=float, default=5000.0, help='Initial balance')
@@ -44,6 +44,23 @@ def main():
             return results
         else:
             print("\n❌ Pure $5K system failed")
+            return None
+            
+    elif args.system == 'pure5kv3':
+        from trading_systems.pure_5k_v3_system import Pure5KV3TradingSystem
+        
+        system = Pure5KV3TradingSystem(initial_balance=args.balance)
+        # NOTE: run_pure_5k_backtest will need to be implemented in the V3 class
+        # For now, this will likely fail until we copy over the backtest logic.
+        results = system.run_pure_5k_backtest(days=args.days) 
+        
+        if results and not results.get('error'):
+            print(f"\n✅ Pure $5K V3 system completed successfully!")
+            print(f"📊 Return: {results['return_percentage']:.2f}%")
+            print(f"🎯 Target: {'✅ MET' if results['target_met'] else '❌ NOT MET'}")
+            return results
+        else:
+            print("\n❌ Pure $5K V3 system failed or is not fully implemented.")
             return None
             
     elif args.system == 'enhanced':
