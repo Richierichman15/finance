@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Ultra-Aggressive Trading System Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ffffff;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(145deg, #2a2a4a, #1e1e3a);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-title {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-change {
+            font-size: 0.9em;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .positive {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .negative {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        .neutral {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .chart-container {
+            background: linear-gradient(145deg, #2a2a4a, #1e1e3a);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .chart-title {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .portfolio-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .asset-card {
+            background: linear-gradient(145deg, #3a3a5a, #2e2e4a);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .asset-symbol {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .asset-value {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .asset-change {
+            font-size: 0.9em;
+            padding: 3px 8px;
+            border-radius: 15px;
+        }
+
+        .trades-table {
+            background: linear-gradient(145deg, #2a2a4a, #1e1e3a);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .trades-table h3 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .buy {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .sell {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            opacity: 0.7;
+        }
+
+        .update-time {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-value {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Ultra-Aggressive Trading System Dashboard</h1>
+            <p>Enhanced V2 with Daily Additions & Expanded Universe</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="emoji">⏳</div>
+            Loading trading results... Please wait.
+        </div>
+
+        <div id="dashboard-content" style="display: none;">
+            <!-- Performance Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Portfolio Value</div>
+                    <div class="stat-value" id="portfolio-value">$0.00</div>
+                    <div class="stat-change positive" id="portfolio-change">+0.00%</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">Total Return</div>
+                    <div class="stat-value" id="total-return">$0.00</div>
+                    <div class="stat-change" id="return-change">0.00%</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">Daily Additions</div>
+                    <div class="stat-value" id="total-additions">$0.00</div>
+                    <div class="stat-change neutral">Auto-Added</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-title">Total Trades</div>
+                    <div class="stat-value" id="total-trades">0</div>
+                    <div class="stat-change neutral">Executed</div>
+                </div>
+            </div>
+
+            <!-- Portfolio Breakdown -->
+            <div class="chart-container">
+                <div class="chart-title">💼 Portfolio Holdings by Category</div>
+                <div class="portfolio-breakdown" id="portfolio-breakdown">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+
+            <!-- Recent Trades -->
+            <div class="trades-table">
+                <h3>📊 Recent Trading Activity</h3>
+                <table id="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Symbol</th>
+                            <th>Action</th>
+                            <th>Shares</th>
+                            <th>Price</th>
+                            <th>Amount</th>
+                            <th>Strategy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Daily Performance Chart -->
+            <div class="chart-container">
+                <div class="chart-title">📈 Daily Performance Timeline</div>
+                <div id="daily-chart">
+                    <!-- Chart will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="update-time" id="update-time">
+            Last updated: <span id="last-update">Never</span>
+        </div>
+    </div>
+
+    <script>
+        // Sample data structure - This will be replaced with actual trading results
+        let tradingResults = {
+            simulation_metadata: {
+                strategy: "Enhanced Ultra-Aggressive V2",
+                duration_days: 30,
+                symbols_tracked: 23
+            },
+            final_results: {
+                initial_balance: 5000.00,
+                total_additions: 3200.00,
+                adjusted_initial: 8200.00,
+                final_value: 9086.40,
+                total_return: 886.40,
+                return_pct: 10.81,
+                max_value: 9234.50,
+                min_value: 8156.20,
+                total_trades: 47,
+                success: true
+            },
+            daily_values: [
+                {date: "2024-12-01", portfolio_value: 8200.00, return_pct: 0.00},
+                {date: "2024-12-02", portfolio_value: 8267.30, return_pct: 0.82},
+                {date: "2024-12-03", portfolio_value: 8189.50, return_pct: -0.13},
+                {date: "2024-12-05", portfolio_value: 8456.80, return_pct: 3.13},
+                {date: "2024-12-06", portfolio_value: 8523.40, return_pct: 3.94},
+                {date: "2024-12-09", portfolio_value: 8678.90, return_pct: 5.84},
+                {date: "2024-12-10", portfolio_value: 8734.20, return_pct: 6.51},
+                {date: "2024-12-12", portfolio_value: 8891.60, return_pct: 8.43},
+                {date: "2024-12-13", portfolio_value: 9023.80, return_pct: 10.04},
+                {date: "2024-12-16", portfolio_value: 9086.40, return_pct: 10.81}
+            ],
+            final_positions: {
+                "BTC-USD": {shares: 0.01456, category: "crypto", value: 1521.30, gain_pct: 8.4},
+                "ETH-USD": {shares: 0.34821, category: "crypto", value: 1467.80, gain_pct: 12.1},
+                "SOL-USD": {shares: 5.2341, category: "crypto", value: 1398.20, gain_pct: 15.6},
+                "XRP-USD": {shares: 623.45, category: "crypto", value: 1502.40, gain_pct: 18.2},
+                "NVDA": {shares: 4.523, category: "tech", value: 643.80, gain_pct: 6.7},
+                "NEE": {shares: 12.34, category: "energy", value: 892.10, gain_pct: 4.2},
+                "SPY": {shares: 2.156, category: "etf", value: 1278.90, gain_pct: 3.1}
+            },
+            trades: [
+                {date: "2024-12-01", symbol: "BTC-USD", action: "BUY", shares: 0.01218, price: 98500.00, amount: 1200.00, strategy: "Day1_Crypto_Allocation"},
+                {date: "2024-12-01", symbol: "ETH-USD", action: "BUY", shares: 0.30848, price: 3890.00, amount: 1200.00, strategy: "Day1_Crypto_Allocation"},
+                {date: "2024-12-05", symbol: "SOL-USD", action: "BUY", shares: 2.134, price: 187.50, amount: 400.00, strategy: "Explosive_Momentum"},
+                {date: "2024-12-09", symbol: "XRP-USD", action: "BUY", shares: 156.23, price: 2.41, amount: 376.50, strategy: "Strong_Momentum"},
+                {date: "2024-12-12", symbol: "NVDA", action: "BUY", shares: 1.245, price: 142.30, amount: 177.20, strategy: "Tech_Breakout"}
+            ]
+        };
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function formatPercent(percent) {
+            return (percent >= 0 ? '+' : '') + percent.toFixed(2) + '%';
+        }
+
+        function getChangeClass(value) {
+            if (value > 0) return 'positive';
+            if (value < 0) return 'negative';
+            return 'neutral';
+        }
+
+        function updateDashboard() {
+            const results = tradingResults.final_results;
+            
+            // Update main stats
+            document.getElementById('portfolio-value').textContent = formatCurrency(results.final_value);
+            document.getElementById('portfolio-change').textContent = formatPercent(results.return_pct);
+            document.getElementById('portfolio-change').className = 'stat-change ' + getChangeClass(results.return_pct);
+            
+            document.getElementById('total-return').textContent = formatCurrency(results.total_return);
+            document.getElementById('return-change').textContent = formatPercent(results.return_pct);
+            document.getElementById('return-change').className = 'stat-change ' + getChangeClass(results.return_pct);
+            
+            document.getElementById('total-additions').textContent = formatCurrency(results.total_additions);
+            document.getElementById('total-trades').textContent = results.total_trades;
+
+            // Update portfolio breakdown
+            updatePortfolioBreakdown();
+            
+            // Update trades table
+            updateTradesTable();
+            
+            // Update daily chart
+            updateDailyChart();
+            
+            // Show dashboard
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+            
+            // Update last update time
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+        }
+
+        function updatePortfolioBreakdown() {
+            const breakdown = document.getElementById('portfolio-breakdown');
+            const positions = tradingResults.final_positions;
+            
+            breakdown.innerHTML = '';
+            
+            for (const [symbol, data] of Object.entries(positions)) {
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                
+                const emoji = data.category === 'crypto' ? '🪙' : 
+                            data.category === 'tech' ? '💻' : 
+                            data.category === 'energy' ? '⚡' : '📈';
+                
+                card.innerHTML = `
+                    <div class="asset-symbol">${emoji} ${symbol}</div>
+                    <div class="asset-value">${formatCurrency(data.value)}</div>
+                    <div class="asset-change ${getChangeClass(data.gain_pct)}">${formatPercent(data.gain_pct)}</div>
+                `;
+                
+                breakdown.appendChild(card);
+            }
+        }
+
+        function updateTradesTable() {
+            const tbody = document.querySelector('#trades-table tbody');
+            const trades = tradingResults.trades.slice(-10); // Show last 10 trades
+            
+            tbody.innerHTML = '';
+            
+            trades.forEach(trade => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${trade.date}</td>
+                    <td>${trade.symbol}</td>
+                    <td class="${trade.action.toLowerCase()}">${trade.action}</td>
+                    <td>${trade.shares.toFixed(6)}</td>
+                    <td>${formatCurrency(trade.price)}</td>
+                    <td>${formatCurrency(trade.amount)}</td>
+                    <td>${trade.strategy}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateDailyChart() {
+            const chartDiv = document.getElementById('daily-chart');
+            const dailyValues = tradingResults.daily_values;
+            
+            // Simple text-based chart for now
+            let chartHTML = '<div style="padding: 20px; text-align: center;">';
+            chartHTML += '<div style="display: flex; justify-content: space-between; align-items: end; height: 200px; border-bottom: 2px solid #667eea; padding: 20px 0;">';
+            
+            const maxValue = Math.max(...dailyValues.map(d => d.portfolio_value));
+            const minValue = Math.min(...dailyValues.map(d => d.portfolio_value));
+            const range = maxValue - minValue;
+            
+            dailyValues.forEach((day, index) => {
+                const height = range > 0 ? ((day.portfolio_value - minValue) / range) * 150 + 20 : 50;
+                const color = day.return_pct >= 0 ? '#4CAF50' : '#f44336';
+                
+                chartHTML += `
+                    <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                        <div style="width: 20px; height: ${height}px; background: ${color}; margin-bottom: 5px; border-radius: 2px;" 
+                             title="${formatCurrency(day.portfolio_value)} (${formatPercent(day.return_pct)})"></div>
+                        <div style="font-size: 0.7em; writing-mode: vertical-rl; text-orientation: mixed;">${day.date.split('-')[2]}</div>
+                    </div>
+                `;
+            });
+            
+            chartHTML += '</div>';
+            chartHTML += `<div style="margin-top: 10px; color: #667eea;">📈 Portfolio Value Over Time (${formatCurrency(minValue)} - ${formatCurrency(maxValue)})</div>`;
+            chartHTML += '</div>';
+            
+            chartDiv.innerHTML = chartHTML;
+        }
+
+        // Auto-refresh every 30 seconds
+        function autoRefresh() {
+            // In a real implementation, this would fetch fresh data
+            updateDashboard();
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updateDashboard, 1000); // Simulate loading time
+            setInterval(autoRefresh, 30000); // Refresh every 30 seconds
+        });
+
+        // Function to load real trading results (to be called from Python)
+        function loadTradingResults(results) {
+            tradingResults = results;
+            updateDashboard();
+        }
+    </script>
+</body>
+</html>

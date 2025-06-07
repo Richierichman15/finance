@@ -11,3 +11,9 @@ venv/
 __pycache__/
 finance.db
 alembic.ini
+
+historical_data_cache_44days.pkl
+historical_data_cache_51days.pkl
+historical_data_cache_60days.pkl
+historical_data_cache_75days.pkl
+pure_5k_cache_40days.pkl
