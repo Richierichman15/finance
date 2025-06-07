@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(__file__))
 
 def main():
     parser = argparse.ArgumentParser(description='Ultra-Aggressive Trading System')
-    parser.add_argument('--system', choices=['pure5k', 'pure5kv3', 'enhanced', 'dashboard'], 
+    parser.add_argument('--system', choices=['pure5k', 'pure5kv3', 'pure5kv4ai', 'enhanced', 'dashboard'], 
                        default='pure5k', help='Trading system to run')
     parser.add_argument('--days', type=int, default=30, help='Days to backtest')
     parser.add_argument('--balance', type=float, default=5000.0, help='Initial balance')
@@ -41,49 +41,51 @@ def main():
             print(f"\n✅ Pure $5K system completed successfully!")
             print(f"📊 Return: {results['return_percentage']:.2f}%")
             print(f"🎯 Target: {'✅ MET' if results['target_met'] else '❌ NOT MET'}")
-            return results
         else:
-            print("\n❌ Pure $5K system failed")
-            return None
-            
+            print(f"\n❌ Pure $5K system failed: {results.get('error', 'Unknown error')}")
+    
     elif args.system == 'pure5kv3':
         from trading_systems.pure_5k_v3_system import Pure5KV3TradingSystem
         
         system = Pure5KV3TradingSystem(initial_balance=args.balance)
-        # NOTE: run_pure_5k_backtest will need to be implemented in the V3 class
-        # For now, this will likely fail until we copy over the backtest logic.
-        results = system.run_pure_5k_backtest(days=args.days) 
+        results = system.run_pure_5k_v3_backtest(days=args.days)
         
         if results and not results.get('error'):
             print(f"\n✅ Pure $5K V3 system completed successfully!")
             print(f"📊 Return: {results['return_percentage']:.2f}%")
             print(f"🎯 Target: {'✅ MET' if results['target_met'] else '❌ NOT MET'}")
-            return results
         else:
-            print("\n❌ Pure $5K V3 system failed or is not fully implemented.")
-            return None
+            print(f"\n❌ Pure $5K V3 system failed: {results.get('error', 'Unknown error')}")
+    
+    elif args.system == 'pure5kv4ai':
+        from trading_systems.pure_5k_v4_ai_system import Pure5KV4AITradingSystem
+        
+        system = Pure5KV4AITradingSystem(initial_balance=args.balance)
+        results = system.run_ai_enhanced_backtest(days=args.days)
+        
+        if results and not results.get('error'):
+            print(f"\n✅ Pure $5K V4 AI system completed successfully!")
+            print(f"📊 Return: {results['return_percentage']:.2f}%")
+            print(f"🎯 Target: {'✅ MET' if results['target_met'] else '❌ NOT MET'}")
             
+            # Display AI metrics if available
+            ai_metrics = results.get('ai_metrics', {})
+            if ai_metrics and ai_metrics.get('sample_size', 0) > 0:
+                print(f"\n🧠 AI Performance:")
+                print(f"   📊 Direction Accuracy: {ai_metrics.get('direction_accuracy', 0):.1%}")
+                print(f"   📈 Return MAE: {ai_metrics.get('return_mae', 0):.3f}")
+                print(f"   📋 Predictions: {ai_metrics.get('sample_size', 0)}")
+        else:
+            print(f"\n❌ Pure $5K V4 AI system failed: {results.get('error', 'Unknown error')}")
+    
     elif args.system == 'enhanced':
-        from trading_systems.enhanced_system import EnhancedUltraAggressiveV2
-        
-        # Enhanced system with daily additions (legacy)
-        system = EnhancedUltraAggressiveV2(
-            initial_balance=args.balance,
-            daily_addition_base=0  # Set to 0 for pure trading
-        )
-        results = system.run_enhanced_backtest(days=args.days)
-        return results
-        
+        print("🔧 Enhanced system not implemented yet")
+    
     elif args.system == 'dashboard':
-        from dashboard.dashboard_runner import run_dashboard_with_system
-        
-        print("🌐 Starting dashboard with live trading system...")
-        run_dashboard_with_system(args.balance, args.days)
-        return None
+        print("📊 Dashboard not implemented yet")
     
     else:
         print(f"❌ Unknown system: {args.system}")
-        return None
 
 if __name__ == "__main__":
     main()
