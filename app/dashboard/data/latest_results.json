@@ -1,0 +1,744 @@
+{
+  "timestamp": "20250607_033531",
+  "system_type": "pure_5k",
+  "results": {
+    "initial_balance": 5000.0,
+    "final_portfolio_value": 5224.56105285324,
+    "total_return": 224.56105285323974,
+    "return_percentage": 4.491221057064795,
+    "max_value": 5688.987934408348,
+    "min_value": 4999.999999999999,
+    "total_trades": 36,
+    "trading_days": 31,
+    "target_met": false
+  },
+  "trades": [
+    {
+      "date": "2025-05-08",
+      "symbol": "BTC-USD",
+      "action": "BUY",
+      "shares": 0.005052119320638358,
+      "price": 98968.3671875,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "XRP-USD",
+      "action": "BUY",
+      "shares": 228.93500321872168,
+      "price": 2.184026002883911,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "ETH-USD",
+      "action": "BUY",
+      "shares": 0.2639566090391477,
+      "price": 1894.250732421875,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "SOL-USD",
+      "action": "BUY",
+      "shares": 3.308084889609526,
+      "price": 151.1448516845703,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "TRX-USD",
+      "action": "BUY",
+      "shares": 1999.5275659995305,
+      "price": 0.2500590682029724,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "ADA-USD",
+      "action": "BUY",
+      "shares": 713.1568497244793,
+      "price": 0.7011080384254456,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "XLM-USD",
+      "action": "BUY",
+      "shares": 1862.4669615358955,
+      "price": 0.268461138010025,
+      "amount": 500.0,
+      "strategy": "Day1_Crypto_Allocation",
+      "reason": "",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "XLE",
+      "action": "BUY",
+      "shares": 1.319493314567206,
+      "price": 81.2,
+      "amount": 107.14285714285714,
+      "strategy": "Day1_Energy_Allocation",
+      "reason": "",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "KOLD",
+      "action": "BUY",
+      "shares": 4.971826317533973,
+      "price": 21.55,
+      "amount": 107.14285714285714,
+      "strategy": "Day1_Energy_Allocation",
+      "reason": "",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "UNG",
+      "action": "BUY",
+      "shares": 5.8516033393149725,
+      "price": 18.31,
+      "amount": 107.14285714285714,
+      "strategy": "Day1_Energy_Allocation",
+      "reason": "",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "USO",
+      "action": "BUY",
+      "shares": 1.6759402024535763,
+      "price": 63.93,
+      "amount": 107.14285714285714,
+      "strategy": "Day1_Energy_Allocation",
+      "reason": "",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "NEE",
+      "action": "BUY",
+      "shares": 1.5891850658982074,
+      "price": 67.42,
+      "amount": 107.14285714285714,
+      "strategy": "Day1_Energy_Allocation",
+      "reason": "",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "DUK",
+      "action": "BUY",
+      "shares": 0.8711509646545015,
+      "price": 122.99,
+      "amount": 107.14285714285714,
+      "strategy": "Day1_Energy_Allocation",
+      "reason": "",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "QQQ",
+      "action": "BUY",
+      "shares": 0.17021740166540705,
+      "price": 489.57,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_Tech_Allocation",
+      "reason": "",
+      "category": "tech"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "NVDA",
+      "action": "BUY",
+      "shares": 0.6990465005732182,
+      "price": 119.21,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_Tech_Allocation",
+      "reason": "",
+      "category": "tech"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "MSFT",
+      "action": "BUY",
+      "shares": 0.1902196656699156,
+      "price": 438.09,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_Tech_Allocation",
+      "reason": "",
+      "category": "tech"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "GOOGL",
+      "action": "BUY",
+      "shares": 0.5387814917781945,
+      "price": 154.67,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_Tech_Allocation",
+      "reason": "",
+      "category": "tech"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "TSLA",
+      "action": "BUY",
+      "shares": 0.29836496001909535,
+      "price": 279.3,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_Tech_Allocation",
+      "reason": "",
+      "category": "tech"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "AMD",
+      "action": "BUY",
+      "shares": 0.8188398676754773,
+      "price": 101.77,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_Tech_Allocation",
+      "reason": "",
+      "category": "tech"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "SPY",
+      "action": "BUY",
+      "shares": 0.1471124763148913,
+      "price": 566.46,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_ETF_Allocation",
+      "reason": "",
+      "category": "etf"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "VTI",
+      "action": "BUY",
+      "shares": 0.2990824151503188,
+      "price": 278.63,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_ETF_Allocation",
+      "reason": "",
+      "category": "etf"
+    },
+    {
+      "date": "2025-05-08",
+      "symbol": "GLD",
+      "action": "BUY",
+      "shares": 0.27062427608006145,
+      "price": 307.93,
+      "amount": 83.33333333333333,
+      "strategy": "Day1_ETF_Allocation",
+      "reason": "",
+      "category": "etf"
+    },
+    {
+      "date": "2025-05-10",
+      "symbol": "KOLD",
+      "action": "SELL",
+      "shares": 1.9887305270135895,
+      "price": 20.16,
+      "amount": 40.092807424593964,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-11",
+      "symbol": "KOLD",
+      "action": "SELL",
+      "shares": 1.1932383162081537,
+      "price": 20.43,
+      "amount": 24.37785880013258,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-12",
+      "symbol": "KOLD",
+      "action": "SELL",
+      "shares": 0.7159429897248921,
+      "price": 20.43,
+      "amount": 14.626715280079546,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-14",
+      "symbol": "ETH-USD",
+      "action": "BUY",
+      "shares": 0.020956707699414167,
+      "price": 2666.071044921875,
+      "amount": 55.87207159429943,
+      "strategy": "Strong_Momentum",
+      "reason": "24h strength detected",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-19",
+      "symbol": "ETH-USD",
+      "action": "SELL",
+      "shares": 0.11396532669542475,
+      "price": 2364.790771484375,
+      "amount": 269.5041528385423,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-19",
+      "symbol": "SOL-USD",
+      "action": "SELL",
+      "shares": 1.3232339558438104,
+      "price": 163.29150390625,
+      "amount": 216.07286266955222,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-19",
+      "symbol": "ADA-USD",
+      "action": "SELL",
+      "shares": 285.26273988979176,
+      "price": 0.7205318808555603,
+      "amount": 205.54089851080212,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-20",
+      "symbol": "ETH-USD",
+      "action": "BUY",
+      "shares": 0.07777821663056259,
+      "price": 2571.4140625,
+      "amount": 200,
+      "strategy": "Strong_Momentum",
+      "reason": "24h strength detected",
+      "category": "crypto"
+    },
+    {
+      "date": "2025-05-20",
+      "symbol": "KOLD",
+      "action": "BUY",
+      "shares": 5.448601525608427,
+      "price": 27.53,
+      "amount": 150,
+      "strategy": "Strong_Momentum",
+      "reason": "24h strength detected",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-21",
+      "symbol": "KOLD",
+      "action": "SELL",
+      "shares": 2.6090064040783063,
+      "price": 22.97,
+      "amount": 59.928877101678694,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "energy"
+    },
+    {
+      "date": "2025-05-29",
+      "symbol": "KOLD",
+      "action": "BUY",
+      "shares": 5.884660651235779,
+      "price": 25.49,
+      "amount": 150,
+      "strategy": "Strong_Momentum",
+      "reason": "24h strength detected",
+      "category": "energy"
+    },
+    {
+      "date": "2025-06-03",
+      "symbol": "KOLD",
+      "action": "SELL",
+      "shares": 3.9192681029412952,
+      "price": 22.89,
+      "amount": 89.71204687632626,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "energy"
+    },
+    {
+      "date": "2025-06-03",
+      "symbol": "UNG",
+      "action": "BUY",
+      "shares": 8.397985829773031,
+      "price": 16.83,
+      "amount": 141.3381015150801,
+      "strategy": "Strong_Momentum",
+      "reason": "24h strength detected",
+      "category": "energy"
+    },
+    {
+      "date": "2025-06-06",
+      "symbol": "TSLA",
+      "action": "SELL",
+      "shares": 0.11934598400763814,
+      "price": 296.46,
+      "amount": 35.3813104189044,
+      "strategy": "Risk_Management",
+      "reason": "Downtrend protection",
+      "category": "tech"
+    }
+  ],
+  "daily_values": [
+    {
+      "date": "2025-05-08",
+      "portfolio_value": 4999.999999999999,
+      "cash": 107.1428571428587,
+      "return_pct": -1.8189894035458565e-14,
+      "trades_count": 22
+    },
+    {
+      "date": "2025-05-09",
+      "portfolio_value": 5262.356520994971,
+      "cash": 107.1428571428587,
+      "return_pct": 5.247130419899422,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-10",
+      "portfolio_value": 5395.437269191604,
+      "cash": 147.23566456745266,
+      "return_pct": 7.908745383832083,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-05-11",
+      "portfolio_value": 5576.265811415687,
+      "cash": 171.61352336758523,
+      "return_pct": 11.52531622831373,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-05-12",
+      "portfolio_value": 5559.727442801345,
+      "cash": 186.24023864766477,
+      "return_pct": 11.194548856026904,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-05-13",
+      "portfolio_value": 5482.441587249422,
+      "cash": 186.24023864766477,
+      "return_pct": 9.648831744988438,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-14",
+      "portfolio_value": 5688.987934408348,
+      "cash": 130.36816705336534,
+      "return_pct": 13.779758688166964,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-05-15",
+      "portfolio_value": 5590.658117403557,
+      "cash": 130.36816705336534,
+      "return_pct": 11.813162348071145,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-16",
+      "portfolio_value": 5545.110755942165,
+      "cash": 130.36816705336534,
+      "return_pct": 10.902215118843305,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-17",
+      "portfolio_value": 5467.990585351531,
+      "cash": 130.36816705336534,
+      "return_pct": 9.359811707030621,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-18",
+      "portfolio_value": 5436.731984996254,
+      "cash": 130.36816705336534,
+      "return_pct": 8.734639699925083,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-19",
+      "portfolio_value": 5317.632154467827,
+      "cash": 821.486081072262,
+      "return_pct": 6.352643089356534,
+      "trades_count": 3
+    },
+    {
+      "date": "2025-05-20",
+      "portfolio_value": 5450.209098613118,
+      "cash": 471.486081072262,
+      "return_pct": 9.004181972262359,
+      "trades_count": 2
+    },
+    {
+      "date": "2025-05-21",
+      "portfolio_value": 5437.789114241398,
+      "cash": 531.4149581739407,
+      "return_pct": 8.755782284827966,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-05-22",
+      "portfolio_value": 5521.6186928717425,
+      "cash": 531.4149581739407,
+      "return_pct": 10.43237385743485,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-23",
+      "portfolio_value": 5583.777688361029,
+      "cash": 531.4149581739407,
+      "return_pct": 11.675553767220572,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-24",
+      "portfolio_value": 5440.189464090898,
+      "cash": 531.4149581739407,
+      "return_pct": 8.803789281817952,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-25",
+      "portfolio_value": 5399.039070601995,
+      "cash": 531.4149581739407,
+      "return_pct": 7.980781412039906,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-26",
+      "portfolio_value": 5457.666522990187,
+      "cash": 531.4149581739407,
+      "return_pct": 9.153330459803746,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-27",
+      "portfolio_value": 5431.621363920249,
+      "cash": 531.4149581739407,
+      "return_pct": 8.632427278404975,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-28",
+      "portfolio_value": 5476.879750840099,
+      "cash": 531.4149581739407,
+      "return_pct": 9.537595016801987,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-29",
+      "portfolio_value": 5476.5529026125005,
+      "cash": 381.4149581739407,
+      "return_pct": 9.531058052250009,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-05-30",
+      "portfolio_value": 5362.780061198744,
+      "cash": 381.4149581739407,
+      "return_pct": 7.255601223974882,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-05-31",
+      "portfolio_value": 5240.491250512047,
+      "cash": 381.4149581739407,
+      "return_pct": 4.809825010240947,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-06-01",
+      "portfolio_value": 5253.65355599098,
+      "cash": 381.4149581739407,
+      "return_pct": 5.0730711198195975,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-06-02",
+      "portfolio_value": 5247.00581228243,
+      "cash": 381.4149581739407,
+      "return_pct": 4.940116245648605,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-06-03",
+      "portfolio_value": 5287.445298594341,
+      "cash": 329.7889035351869,
+      "return_pct": 5.748905971886815,
+      "trades_count": 2
+    },
+    {
+      "date": "2025-06-04",
+      "portfolio_value": 5333.650996036777,
+      "cash": 329.7889035351869,
+      "return_pct": 6.673019920735533,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-06-05",
+      "portfolio_value": 5301.727274797589,
+      "cash": 329.7889035351869,
+      "return_pct": 6.034545495951789,
+      "trades_count": 0
+    },
+    {
+      "date": "2025-06-06",
+      "portfolio_value": 5184.719273809765,
+      "cash": 365.17021395409125,
+      "return_pct": 3.6943854761952934,
+      "trades_count": 1
+    },
+    {
+      "date": "2025-06-07",
+      "portfolio_value": 5224.56105285324,
+      "cash": 365.17021395409125,
+      "return_pct": 4.491221057064795,
+      "trades_count": 0
+    }
+  ],
+  "positions": {
+    "BTC-USD": {
+      "shares": 0.005052119320638358,
+      "avg_price": 98968.3671875,
+      "category": "crypto"
+    },
+    "XRP-USD": {
+      "shares": 228.93500321872168,
+      "avg_price": 2.184026002883911,
+      "category": "crypto"
+    },
+    "ETH-USD": {
+      "shares": 0.24872620667369968,
+      "avg_price": 2145.0222318410583,
+      "category": "crypto"
+    },
+    "SOL-USD": {
+      "shares": 1.9848509337657156,
+      "avg_price": 151.1448516845703,
+      "category": "crypto"
+    },
+    "TRX-USD": {
+      "shares": 1999.5275659995305,
+      "avg_price": 0.2500590682029724,
+      "category": "crypto"
+    },
+    "ADA-USD": {
+      "shares": 427.8941098346876,
+      "avg_price": 0.7011080384254456,
+      "category": "crypto"
+    },
+    "XLM-USD": {
+      "shares": 1862.4669615358955,
+      "avg_price": 0.268461138010025,
+      "category": "crypto"
+    },
+    "XLE": {
+      "shares": 1.319493314567206,
+      "avg_price": 81.2,
+      "category": "energy"
+    },
+    "KOLD": {
+      "shares": 5.878902154411943,
+      "avg_price": 25.91154344304035,
+      "category": "energy"
+    },
+    "UNG": {
+      "shares": 14.249589169088004,
+      "avg_price": 17.437762991579664,
+      "category": "energy"
+    },
+    "USO": {
+      "shares": 1.6759402024535763,
+      "avg_price": 63.93,
+      "category": "energy"
+    },
+    "NEE": {
+      "shares": 1.5891850658982074,
+      "avg_price": 67.42,
+      "category": "energy"
+    },
+    "DUK": {
+      "shares": 0.8711509646545015,
+      "avg_price": 122.99,
+      "category": "energy"
+    },
+    "QQQ": {
+      "shares": 0.17021740166540705,
+      "avg_price": 489.57,
+      "category": "tech"
+    },
+    "NVDA": {
+      "shares": 0.6990465005732182,
+      "avg_price": 119.21,
+      "category": "tech"
+    },
+    "MSFT": {
+      "shares": 0.1902196656699156,
+      "avg_price": 438.09,
+      "category": "tech"
+    },
+    "GOOGL": {
+      "shares": 0.5387814917781945,
+      "avg_price": 154.67,
+      "category": "tech"
+    },
+    "TSLA": {
+      "shares": 0.17901897601145722,
+      "avg_price": 279.3,
+      "category": "tech"
+    },
+    "AMD": {
+      "shares": 0.8188398676754773,
+      "avg_price": 101.77,
+      "category": "tech"
+    },
+    "SPY": {
+      "shares": 0.1471124763148913,
+      "avg_price": 566.46,
+      "category": "etf"
+    },
+    "VTI": {
+      "shares": 0.2990824151503188,
+      "avg_price": 278.63,
+      "category": "etf"
+    },
+    "GLD": {
+      "shares": 0.27062427608006145,
+      "avg_price": 307.93,
+      "category": "etf"
+    }
+  }
+}
