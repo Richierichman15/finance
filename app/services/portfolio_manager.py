@@ -8,12 +8,12 @@ import asyncio
 class PortfolioManager:
     def __init__(self):
         self.target_allocation = {
-            "US_Equities": 40.0,      # VTI, SCHB
+            "US_Equities": 20.0,      # VTI, SCHB
             "Energy": 20.0,           # XLE, AMLP  
             "Infrastructure": 15.0,   # IGF, BIPC
             "Technology": 15.0,       # QQQ, VGT
             "Real_Estate": 5.0,       # VNQ
-            "Crypto": 5.0            # Speculative
+            "Crypto": 25.0            # Speculative
         }
         
         self.etf_mapping = {
