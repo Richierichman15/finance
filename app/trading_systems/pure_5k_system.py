@@ -21,7 +21,9 @@ import pytz
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Configure logging to reduce noise from yfinance
 logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)  # Suppress yfinance error messages
 
 class Pure5KTradingSystem:
     def __init__(self, initial_balance: float = 5000.0):
@@ -42,7 +44,6 @@ class Pure5KTradingSystem:
         # EXPANDED STOCK UNIVERSE - Energy, Tech, ETFs
         self.energy_stocks = [
             'XLE',    # Energy ETF
-            'XEG',    # Energy Equipment ETF  
             'KOLD',   # Natural Gas Bear ETF
             'UNG',    # Natural Gas ETF
             'USO',    # Oil ETF
@@ -243,7 +244,9 @@ class Pure5KTradingSystem:
             except Exception as cache_fallback_error:
                 self.logger.debug(f"Cache fallback failed for {symbol}: {cache_fallback_error}")
         
-        self.logger.error(f"Could not get price for {symbol}")
+        # Only log error for non-problematic symbols
+        if symbol not in ['XEG']:  # Add other known problematic symbols here
+            self.logger.error(f"Could not get price for {symbol}")
         return 0.0
 
     def _try_yfinance(self, symbol: str, date: str = None) -> float:
@@ -265,11 +268,15 @@ class Pure5KTradingSystem:
                     if not hist.empty:
                         return float(hist['Close'].iloc[-1])
                 except Exception as period_error:
-                    self.logger.debug(f"Period {period} failed for {symbol}: {period_error}")
+                    # Only log debug messages for period failures to reduce noise
+                    if self.logger.isEnabledFor(logging.DEBUG):
+                        self.logger.debug(f"Period {period} failed for {symbol}: {period_error}")
                     continue
                     
         except Exception as e:
-            self.logger.debug(f"yfinance failed for {symbol}: {e}")
+            # Only log if it's not a known delisted symbol
+            if symbol not in ['XEG']:  # Add other known problematic symbols here
+                self.logger.debug(f"yfinance failed for {symbol}: {e}")
         
         return 0.0
 
