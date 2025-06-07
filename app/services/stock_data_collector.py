@@ -10,19 +10,46 @@ from ..models.database_models import StockFundamentals
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Enhanced list of symbols to track - V2 Expanded Universe
+SYMBOLS = [
+    # Original ETFs
+    'SPY',     # S&P 500 ETF
+    'XLE',     # Energy ETF
+    'GLD',     # Gold ETF
+    'QQQ',     # NASDAQ ETF
+    'VTI',     # Total Stock Market ETF
+    
+    # Original Cryptocurrencies
+    'BTC-USD', # Bitcoin
+    'XRP-USD', # XRP (Ripple)
+    'ETH-USD', # Ethereum
+    
+    # NEW Cryptocurrencies (V2 Expansion)
+    'SOL-USD', # Solana
+    'TRX-USD', # Tron
+    'ADA-USD', # Cardano
+    'XLM-USD', # Stellar Lumens
+    
+    # NEW Energy Sector Stocks (V2 Expansion)
+    'XEG',     # Energy Equipment ETF
+    'KOLD',    # Natural Gas Bear ETF
+    'UNG',     # Natural Gas ETF
+    'USO',     # Oil ETF
+    'NEE',     # NextEra Energy (Electrical)
+    'DUK',     # Duke Energy (Electrical)
+    
+    # NEW Tech Sector Stocks (V2 Expansion)
+    'NVDA',    # NVIDIA
+    'MSFT',    # Microsoft
+    'GOOGL',   # Google/Alphabet
+    'TSLA',    # Tesla
+    'AMD',     # AMD
+]
+
 class StockDataCollector:
     def __init__(self):
         # Updated portfolio with ETFs and crypto
-        self.tracked_stocks = [
-            "SPY",     # S&P 500 ETF
-            "XLE",     # Energy Sector SPDR
-            "GLD",     # SPDR Gold Shares
-            "QQQ",     # Invesco QQQ Trust (NASDAQ)
-            "VTI",     # Vanguard Total Stock Market ETF
-            "BTC-USD", # Bitcoin
-            "XRP-USD", # XRP (Ripple)
-            "ETH-USD"  # Ethereum
-        ]
+        self.tracked_stocks = SYMBOLS
     
     def collect_and_store_fundamentals(self, symbols: Optional[List[str]] = None) -> Dict[str, Any]:
         """
