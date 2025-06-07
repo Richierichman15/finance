@@ -12,6 +12,8 @@ __pycache__/
 finance.db
 alembic.ini
 
+cache/
+
 historical_data_cache_44days.pkl
 historical_data_cache_51days.pkl
 historical_data_cache_60days.pkl
