@@ -20,8 +20,8 @@ from typing import Dict, List, Tuple, Optional
 import pytz
 import time
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import schedule
 import threading
 
@@ -92,9 +92,9 @@ class Pure5KLiveTradingSystem:
         self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
         
         # Portfolio allocation
-        self.crypto_allocation = 0.70
+        self.crypto_allocation = 0.50
         self.energy_allocation = 0.00
-        self.tech_allocation = 0.30
+        self.tech_allocation = 0.50
         self.etf_allocation = 0.00
         
         # Market timezone handling
@@ -465,6 +465,12 @@ class Pure5KLiveTradingSystem:
         tech_budget = self.cash * self.tech_allocation
         etf_budget = self.cash * self.etf_allocation
         
+        print(f"\n💰 ALLOCATION BUDGETS:")
+        print(f"   🪙 Crypto: ${crypto_budget:.2f}")
+        print(f"   💻 Tech: ${tech_budget:.2f}")
+        print(f"   ⚡ Energy: ${energy_budget:.2f}")
+        print(f"   📈 ETFs: ${etf_budget:.2f}")
+        
         crypto_per_symbol = crypto_budget / len(self.crypto_symbols)
         energy_per_symbol = energy_budget / len(self.energy_stocks)
         tech_per_symbol = tech_budget / len(self.tech_stocks)
@@ -489,26 +495,27 @@ class Pure5KLiveTradingSystem:
                 self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Crypto_Allocation')
                 total_invested += investment_amount
                 
-                print(f"  🪙 {symbol}: {shares:.8f} shares @ ${price:.4f} = ${investment_amount:.2f}")
+                print(f"   🪙 {symbol}: {shares:.8f} shares @ ${price:.4f} = ${investment_amount:.2f}")
         
         # Invest in energy stocks
-        print(f"\n⚡ ENERGY INVESTMENTS ({self.energy_allocation:.0%}):")
-        for symbol in self.energy_stocks:
-            price = self.get_price_from_cache(symbol, date)
-            if price > 0:
-                investment_amount = energy_per_symbol
-                shares = investment_amount / price
-                
-                self.positions[symbol] = {
-                    'shares': shares,
-                    'avg_price': price,
-                    'category': 'energy'
-                }
-                
-                self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Energy_Allocation')
-                total_invested += investment_amount
-                
-                print(f"  ⚡ {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
+        if self.energy_allocation > 0:
+            print(f"\n⚡ ENERGY INVESTMENTS ({self.energy_allocation:.0%}):")
+            for symbol in self.energy_stocks:
+                price = self.get_price_from_cache(symbol, date)
+                if price > 0:
+                    investment_amount = energy_per_symbol
+                    shares = investment_amount / price
+                    
+                    self.positions[symbol] = {
+                        'shares': shares,
+                        'avg_price': price,
+                        'category': 'energy'
+                    }
+                    
+                    self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Energy_Allocation')
+                    total_invested += investment_amount
+                    
+                    print(f"   ⚡ {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
         
         # Invest in tech stocks
         print(f"\n💻 TECH INVESTMENTS ({self.tech_allocation:.0%}):")
@@ -527,26 +534,27 @@ class Pure5KLiveTradingSystem:
                 self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Tech_Allocation')
                 total_invested += investment_amount
                 
-                print(f"  💻 {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
+                print(f"   💻 {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
         
         # Invest in ETFs
-        print(f"\n📈 ETF INVESTMENTS ({self.etf_allocation:.0%}):")
-        for symbol in self.etf_symbols:
-            price = self.get_price_from_cache(symbol, date)
-            if price > 0:
-                investment_amount = etf_per_symbol
-                shares = investment_amount / price
-                
-                self.positions[symbol] = {
-                    'shares': shares,
-                    'avg_price': price,
-                    'category': 'etf'
-                }
-                
-                self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_ETF_Allocation')
-                total_invested += investment_amount
-                
-                print(f"  📈 {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
+        if self.etf_allocation > 0:
+            print(f"\n📈 ETF INVESTMENTS ({self.etf_allocation:.0%}):")
+            for symbol in self.etf_symbols:
+                price = self.get_price_from_cache(symbol, date)
+                if price > 0:
+                    investment_amount = etf_per_symbol
+                    shares = investment_amount / price
+                    
+                    self.positions[symbol] = {
+                        'shares': shares,
+                        'avg_price': price,
+                        'category': 'etf'
+                    }
+                    
+                    self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_ETF_Allocation')
+                    total_invested += investment_amount
+                    
+                    print(f"   📈 {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
         
         self.cash -= total_invested
         print(f"\n💸 Total Day 1 Investment: ${total_invested:.2f}")
@@ -1131,6 +1139,87 @@ class Pure5KLiveTradingSystem:
         print(f"\n🏁 FINAL REPORT:\n{final_report}")
         
         print("📊 Live monitoring stopped - all data saved")
+
+    def run_pure_5k_backtest(self, days: int = 30) -> Dict:
+        """Run backtest simulation for specified number of days"""
+        try:
+            print(f"\n🚀 Starting Pure $5K backtest simulation - {days} days")
+            print("\n💰 INITIAL PORTFOLIO ALLOCATION:")
+            print(f"🪙 Crypto: {self.crypto_allocation:.0%}")
+            print(f"💻 Tech: {self.tech_allocation:.0%}")
+            print(f"⚡ Energy: {self.energy_allocation:.0%}")
+            print(f"📈 ETFs: {self.etf_allocation:.0%}")
+            
+            # Cache historical data
+            self.cache_historical_data(days=days)
+            
+            # Generate date range for simulation
+            end_date = datetime.now(self.utc)
+            start_date = end_date - timedelta(days=days)
+            date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+            
+            # Run simulation for each day
+            for i, date in enumerate(date_range):
+                date_str = date.strftime('%Y-%m-%d')
+                self.simulate_pure_trading_day(date_str, is_first_day=(i==0))
+            
+            # Calculate final results using last VALID trading day
+            last_valid_date = None
+            for date in reversed(date_range):
+                test_price = self.get_price_from_cache('BTC-USD', date.strftime('%Y-%m-%d'))
+                if test_price > 0:
+                    last_valid_date = date
+                    break
+            
+            if not last_valid_date:
+                last_valid_date = date_range[-2]  # Use second to last day if no valid date found
+                
+            final_date_str = last_valid_date.strftime('%Y-%m-%d')
+            final_value = self.calculate_portfolio_value(final_date_str)
+            total_return = final_value - self.initial_balance
+            return_percentage = (total_return / self.initial_balance) * 100
+            
+            # Generate final position breakdown using last valid date
+            print("\n📊 FINAL POSITION BREAKDOWN:")
+            total_position_value = 0.0
+            for symbol, position in self.positions.items():
+                if position['shares'] > 0:
+                    current_price = self.get_price_from_cache(symbol, final_date_str)
+                    position_value = position['shares'] * current_price
+                    position_return = ((current_price - position['avg_price']) / position['avg_price']) * 100
+                    total_position_value += position_value
+                    print(f"   {symbol}: {position['shares']:.6f} shares @ ${current_price:.4f} = ${position_value:.2f} ({position_return:+.1f}%)")
+            
+            print("\n📈 TRADING STATISTICS:")
+            print(f"   Total Trades: {len(self.trades)}")
+            print(f"   Initial Balance: ${self.initial_balance:,.2f}")
+            print(f"   Final Value: ${final_value:,.2f}")
+            print(f"   Total Return: ${total_return:+,.2f} ({return_percentage:+.2f}%)")
+            print(f"   Available Cash: ${self.cash:,.2f}")
+            print(f"   Invested Value: ${total_position_value:.2f}")
+            print(f"   Cash + Invested: ${(self.cash + total_position_value):.2f}")
+            
+            results = {
+                'initial_balance': self.initial_balance,
+                'final_value': final_value,
+                'total_return': total_return,
+                'return_percentage': return_percentage,
+                'days': days,
+                'trades': len(self.trades),
+                'target_met': return_percentage >= 10.0,
+                'final_cash': self.cash,
+                'invested_value': total_position_value,
+                'positions': self.positions
+            }
+            
+            return results
+            
+        except Exception as e:
+            import traceback
+            return {
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            }
 
 def main():
     """Main execution function"""

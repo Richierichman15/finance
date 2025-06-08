@@ -32,9 +32,9 @@ def main():
     print("=" * 60)
     
     if args.system == 'pure5k':
-        from trading_systems.pure_5k_system import Pure5KTradingSystem
+        from trading_systems.pure_5k_system import Pure5KLiveTradingSystem
         
-        system = Pure5KTradingSystem(initial_balance=args.balance)
+        system = Pure5KLiveTradingSystem(initial_balance=args.balance)
         results = system.run_pure_5k_backtest(days=args.days)
         
         if results and not results.get('error'):
