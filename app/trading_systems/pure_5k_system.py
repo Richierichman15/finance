@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-🚀 PURE $5K ULTRA-AGGRESSIVE TRADING SYSTEM - FIXED VERSION
-===========================================================
+🚀 PURE $5K ULTRA-AGGRESSIVE TRADING SYSTEM - LIVE TESTING VERSION
+==================================================================
 Strategy: Pure trading performance from $5,000 initial capital only
 Focus: 23-symbol diversified portfolio with ultra-aggressive momentum trading
+Features: Paper trading, live monitoring, risk management, daily alerts
 """
 
 import sys
@@ -17,83 +18,98 @@ import json
 import pickle
 from typing import Dict, List, Tuple, Optional
 import pytz
+import time
+import smtplib
+from email.mime.text import MimeText
+from email.mime.multipart import MimeMultipart
+import schedule
+import threading
 
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Configure logging to reduce noise from yfinance
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
-logging.getLogger('yfinance').setLevel(logging.CRITICAL)  # Suppress yfinance error messages
+# Enhanced logging configuration
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app/logs/live_trading.log'),
+        logging.StreamHandler()
+    ]
+)
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
-class Pure5KTradingSystem:
-    def __init__(self, initial_balance: float = 5000.0):
+class Pure5KLiveTradingSystem:
+    def __init__(self, initial_balance: float = 5000.0, paper_trading: bool = True):
         self.initial_balance = initial_balance
         self.cash = initial_balance
         self.positions = {}  # {symbol: {'shares': float, 'avg_price': float}}
         self.trades = []
         self.daily_values = []
-        self.historical_data_cache = {}  # Offline data storage
+        self.historical_data_cache = {}
         self.logger = logging.getLogger(__name__)
         
-        # ENHANCED FEATURES
-        self.last_trade_date = {}  # Track last trade date per symbol for cooldowns
-        self.trailing_stops = {}   # Track trailing stop levels per position
-        self.cooldown_periods = 3  # Wait 3 periods after trade before next entry
+        # LIVE TRADING FEATURES
+        self.paper_trading = paper_trading
+        self.live_mode = not paper_trading
+        self.monitoring_active = False
+        self.daily_reports = []
+        self.alert_thresholds = {
+            'max_daily_loss': -5.0,  # Stop if daily loss > 5%
+            'max_total_loss': -10.0,  # Stop if total loss > 10%
+            'max_position_size': 0.25,  # No single position > 25%
+            'max_trades_per_day': 5,   # Max 5 trades per day
+            'min_cash_reserve': 500.0  # Keep $500 minimum cash
+        }
+        
+        # Enhanced risk management
+        self.last_trade_date = {}
+        self.trailing_stops = {}
+        self.cooldown_periods = 3
+        self.daily_trade_count = 0
+        self.daily_start_value = self.initial_balance
+        self.emergency_stop = False
         
         # EXPANDED CRYPTO UNIVERSE - 7 cryptos
         self.crypto_symbols = [
-            'BTC-USD', 'XRP-USD', 'ETH-USD',  # Original 3
-            'SOL-USD', 'TRX-USD', 'ADA-USD', 'XLM-USD'  # New 4
+            'BTC-USD', 'XRP-USD', 'ETH-USD',
+            'SOL-USD', 'TRX-USD', 'ADA-USD', 'XLM-USD'
         ]
         
-        # EXPANDED STOCK UNIVERSE - Energy, Tech, ETFs
+        # EXPANDED STOCK UNIVERSE
         self.energy_stocks = [
-            'XLE',    # Energy ETF
-            'KOLD',   # Natural Gas Bear ETF
-            'UNG',    # Natural Gas ETF
-            'USO',    # Oil ETF
-            'NEE',    # NextEra Energy (Electrical)
-            'DUK',    # Duke Energy (Electrical)
-            'LNG',    # LNG ETF
-            'XOM',    # Exxon Mobil
-            'PLUG'    # Plug Power
+            'XLE', 'KOLD', 'UNG', 'USO', 'NEE', 'DUK', 'LNG', 'XOM', 'PLUG'
         ]
         
         self.tech_stocks = [
-            'QQQ',    # Tech ETF
-            'NVDA',   # NVIDIA
-            'MSFT',   # Microsoft  
-            'GOOGL',  # Google
-            'TSLA',   # Tesla
-            'AMD',    # AMD
+            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD'
         ]
         
         self.etf_symbols = [
-            'SPY',    # S&P 500
-            'VTI',    # Total Market
-            'GLD',    # Gold
+            'SPY', 'VTI', 'GLD'
         ]
         
         self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
         
-        # REBALANCED ALLOCATION STRATEGY
-        self.crypto_allocation = 0.70     # 70% crypto (reduced from 70%)
-        self.energy_allocation = 0.00     # 10% energy sector (more stocks now)
-        self.tech_allocation = 0.30       # 15% tech sector (increased from 10%)
-        self.etf_allocation = 0.00        # 5% ETFs for stability (increased from 5%)
+        # Portfolio allocation
+        self.crypto_allocation = 0.70
+        self.energy_allocation = 0.00
+        self.tech_allocation = 0.30
+        self.etf_allocation = 0.00
         
         # Market timezone handling
         self.market_tz = pytz.timezone('America/New_York')
         self.utc = pytz.UTC
         
-        print(f"💰 ENHANCED PURE $5K ULTRA-AGGRESSIVE TRADING SYSTEM:")
-        print(f"   💵 Initial Capital: ${self.initial_balance:,.2f} (NO DAILY ADDITIONS)")
-        print(f"   🪙 Crypto Allocation: {self.crypto_allocation:.0%} ({len(self.crypto_symbols)} symbols)")
-        print(f"   ⚡ Energy Allocation: {self.energy_allocation:.0%} ({len(self.energy_stocks)} symbols)")
-        print(f"   💻 Tech Allocation: {self.tech_allocation:.0%} ({len(self.tech_stocks)} symbols)")
-        print(f"   📈 ETF Allocation: {self.etf_allocation:.0%} ({len(self.etf_symbols)} symbols)")
-        print(f"   📊 Total Symbols: {len(self.all_symbols)}")
-        print(f"   🔧 ENHANCED FEATURES: Volume filters, EMA trends, trailing stops, cooldowns")
+        # Create necessary directories
+        os.makedirs('app/logs', exist_ok=True)
+        os.makedirs('app/data/live', exist_ok=True)
+        
+        print(f"🚀 PURE $5K LIVE TRADING SYSTEM - {'PAPER' if paper_trading else 'LIVE'} MODE")
+        print(f"💰 Initial Capital: ${self.initial_balance:,.2f}")
+        print(f"🎯 Risk Management: Active with multiple safeguards")
+        print(f"📊 Daily Monitoring: Enabled")
+        print(f"⚠️  Paper Trading: {'YES' if paper_trading else 'NO - REAL MONEY!'}")
 
     def standardize_datetime(self, dt) -> pd.Timestamp:
         """Standardize datetime to UTC for consistent comparison"""
@@ -735,90 +751,392 @@ class Pure5KTradingSystem:
         
         return total_value
 
-    def run_pure_5k_backtest(self, days: int = 30) -> Dict:
-        """Run ENHANCED pure $5K backtest with volume filters, EMA trends, trailing stops, and cooldowns"""
-        print(f"\n🎯 ENHANCED PURE $5K BACKTEST ({days} DAYS)")
-        print("=" * 60)
-        print(f"💰 Starting with ${self.initial_balance:,.2f} - NO DAILY ADDITIONS")
-        print(f"🎯 Target: 10% returns through enhanced trading strategies")
-        print(f"🔧 ENHANCED FEATURES:")
-        print(f"   📊 Volume confirmation (1.5x average volume required)")
-        print(f"   📈 EMA trend filtering (50 vs 200 EMA bias)")
-        print(f"   🔻 Trailing stops (15% below peak prices)")
-        print(f"   ⏰ Trade cooldowns ({self.cooldown_periods} days between entries)")
-        print(f"   ⚡ Expanded energy universe ({len(self.energy_stocks)} stocks)")
-        
-        # Ensure we have cached data
-        self.cache_historical_data(days + 10)
-        
-        # Calculate start date
-        end_date = datetime.now(self.utc)
-        start_date = end_date - timedelta(days=days)
-        
-        # Generate trading days (business days only for stocks)
-        trading_days = pd.bdate_range(start=start_date.date(), end=end_date.date(), freq='D')
-        
-        for i, trading_day in enumerate(trading_days):
-            date_str = trading_day.strftime('%Y-%m-%d')
-            is_first_day = (i == 0)
+    def get_live_price(self, symbol: str) -> float:
+        """Get real-time price for live trading"""
+        try:
+            ticker = yf.Ticker(symbol)
             
-            try:
-                self.simulate_pure_trading_day(date_str, is_first_day)
-            except Exception as e:
-                self.logger.error(f"Error on {date_str}: {e}")
+            # Try multiple methods for live price
+            methods = [
+                lambda: ticker.history(period='1d', interval='1m').iloc[-1]['Close'],
+                lambda: ticker.history(period='1d').iloc[-1]['Close'],
+                lambda: ticker.info.get('regularMarketPrice', 0),
+                lambda: ticker.info.get('previousClose', 0)
+            ]
+            
+            for method in methods:
+                try:
+                    price = float(method())
+                    if price > 0:
+                        return price
+                except Exception:
+                    continue
+            
+            self.logger.warning(f"Could not get live price for {symbol}")
+            return 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Live price fetch failed for {symbol}: {e}")
+            return 0.0
+
+    def check_risk_management_rules(self, date: str) -> bool:
+        """Check all risk management rules - return False if trading should stop"""
+        current_value = self.calculate_portfolio_value_live(date)
+        daily_return = ((current_value - self.daily_start_value) / self.daily_start_value) * 100
+        total_return = ((current_value - self.initial_balance) / self.initial_balance) * 100
+        
+        # Check daily loss limit
+        if daily_return <= self.alert_thresholds['max_daily_loss']:
+            self.logger.warning(f"Daily loss limit hit: {daily_return:.2f}%")
+            self.send_alert(f"DAILY LOSS ALERT: {daily_return:.2f}% loss today")
+            return False
+        
+        # Check total loss limit  
+        if total_return <= self.alert_thresholds['max_total_loss']:
+            self.logger.warning(f"Total loss limit hit: {total_return:.2f}%")
+            self.send_alert(f"TOTAL LOSS ALERT: {total_return:.2f}% total loss")
+            self.emergency_stop = True
+            return False
+        
+        # Check daily trade limit
+        today_trades = len([t for t in self.trades if t['date'] == date])
+        if today_trades >= self.alert_thresholds['max_trades_per_day']:
+            self.logger.warning(f"Daily trade limit hit: {today_trades} trades")
+            return False
+        
+        # Check minimum cash reserve
+        if self.cash < self.alert_thresholds['min_cash_reserve']:
+            self.logger.warning(f"Low cash reserve: ${self.cash:.2f}")
+            return False
+        
+        # Check position concentration
+        for symbol, position in self.positions.items():
+            if position['shares'] > 0:
+                position_value = position['shares'] * self.get_live_price(symbol)
+                position_pct = position_value / current_value
+                if position_pct > self.alert_thresholds['max_position_size']:
+                    self.logger.warning(f"Position too large: {symbol} = {position_pct:.1%}")
+                    return False
+        
+        return True
+
+    def send_alert(self, message: str) -> None:
+        """Send alert notification (placeholder for email/SMS)"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        alert_msg = f"[{timestamp}] PURE $5K ALERT: {message}"
+        
+        self.logger.warning(alert_msg)
+        
+        # Save alert to file
+        with open('app/logs/alerts.log', 'a') as f:
+            f.write(f"{alert_msg}\n")
+        
+        print(f"🚨 ALERT: {message}")
+
+    def calculate_portfolio_value_live(self, date: str = None) -> float:
+        """Calculate live portfolio value"""
+        total_value = self.cash
+        
+        for symbol, position in self.positions.items():
+            if position['shares'] > 0:
+                current_price = self.get_live_price(symbol)
+                if current_price > 0:
+                    total_value += position['shares'] * current_price
+        
+        return total_value
+
+    def execute_paper_trade(self, symbol: str, action: str, shares: float, price: float, reason: str) -> bool:
+        """Execute trade in paper trading mode"""
+        if not self.paper_trading:
+            self.logger.error("Paper trade called in live mode!")
+            return False
+        
+        amount = shares * price
+        
+        if action == 'BUY':
+            if amount > self.cash:
+                self.logger.warning(f"Insufficient cash for {symbol}: need ${amount:.2f}, have ${self.cash:.2f}")
+                return False
+            
+            self.cash -= amount
+            self._add_to_position(symbol, shares, price, self._get_symbol_category(symbol))
+            
+        elif action == 'SELL':
+            if symbol not in self.positions or self.positions[symbol]['shares'] < shares:
+                self.logger.warning(f"Insufficient shares to sell {symbol}")
+                return False
+            
+            self.positions[symbol]['shares'] -= shares
+            self.cash += amount
+        
+        # Record trade
+        self._record_trade(datetime.now().strftime('%Y-%m-%d'), symbol, action, 
+                          shares, price, amount, 'Live_Paper_Trading', reason)
+        
+        self.logger.info(f"PAPER {action}: {shares:.6f} {symbol} @ ${price:.4f} - {reason}")
+        return True
+
+    def _get_symbol_category(self, symbol: str) -> str:
+        """Get category for symbol"""
+        if symbol in self.crypto_symbols:
+            return 'crypto'
+        elif symbol in self.energy_stocks:
+            return 'energy'
+        elif symbol in self.tech_stocks:
+            return 'tech'
+        elif symbol in self.etf_symbols:
+            return 'etf'
+        return 'unknown'
+
+    def run_live_monitoring_cycle(self) -> None:
+        """Run one cycle of live monitoring and trading"""
+        if self.emergency_stop:
+            self.logger.warning("Emergency stop active - skipping trading cycle")
+            return
+        
+        current_time = datetime.now(self.market_tz)
+        date_str = current_time.strftime('%Y-%m-%d')
+        
+        # Check if market is open (simplified - weekdays 9:30 AM - 4:00 PM ET)
+        if current_time.weekday() >= 5:  # Weekend
+            self.logger.info("Market closed - weekend")
+            return
+        
+        market_open = current_time.replace(hour=9, minute=30, second=0, microsecond=0)
+        market_close = current_time.replace(hour=16, minute=0, second=0, microsecond=0)
+        
+        if current_time < market_open or current_time > market_close:
+            # Crypto trades 24/7, but let's focus on market hours for now
+            self.logger.info("Outside market hours")
+            return
+        
+        # Check risk management rules
+        if not self.check_risk_management_rules(date_str):
+            self.logger.warning("Risk management rules violated - stopping trading")
+            return
+        
+        # Get live signals
+        signals = self.detect_live_momentum_signals()
+        
+        # Execute trades based on signals
+        trades_today = len([t for t in self.trades if t['date'] == date_str])
+        
+        for symbol, signal in signals.items():
+            if trades_today >= self.alert_thresholds['max_trades_per_day']:
+                break
+            
+            current_price = self.get_live_price(symbol)
+            if current_price <= 0:
                 continue
+            
+            # Skip if in cooldown
+            if self.is_in_cooldown(symbol, date_str):
+                continue
+            
+            # Execute trades based on signals (similar to backtest logic)
+            if signal == "EXPLOSIVE_UP" and self.cash > 250:
+                category = self._get_symbol_category(symbol)
+                buy_amount = min(400 if category == 'crypto' else 300, self.cash * 0.4)
+                shares = buy_amount / current_price
+                
+                if self.execute_paper_trade(symbol, 'BUY', shares, current_price, 
+                                          f"Live explosive momentum - {signal}"):
+                    trades_today += 1
+            
+            elif signal == "STRONG_UP" and self.cash > 200:
+                category = self._get_symbol_category(symbol)
+                buy_amount = min(250 if category == 'crypto' else 200, self.cash * 0.3)
+                shares = buy_amount / current_price
+                
+                if self.execute_paper_trade(symbol, 'BUY', shares, current_price,
+                                          f"Live strong momentum - {signal}"):
+                    trades_today += 1
+            
+            # Handle sell signals
+            elif signal in ["REVERSAL_DOWN", "STRONG_DOWN"] and symbol in self.positions:
+                if self.positions[symbol]['shares'] > 0:
+                    sell_ratio = 0.6 if signal == "REVERSAL_DOWN" else 0.4
+                    shares_to_sell = self.positions[symbol]['shares'] * sell_ratio
+                    
+                    if self.execute_paper_trade(symbol, 'SELL', shares_to_sell, current_price,
+                                              f"Live exit signal - {signal}"):
+                        trades_today += 1
         
-        # Calculate final results
-        if not self.daily_values:
-            return {"error": "No trading data generated"}
+        # Update portfolio tracking
+        portfolio_value = self.calculate_portfolio_value_live()
+        return_pct = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
         
-        final_value = self.daily_values[-1]['portfolio_value']
-        total_return = final_value - self.initial_balance
+        self.daily_values.append({
+            'timestamp': current_time.isoformat(),
+            'portfolio_value': portfolio_value,
+            'cash': self.cash,
+            'return_pct': return_pct,
+            'active_positions': len([p for p in self.positions.values() if p['shares'] > 0])
+        })
+        
+        # Log current status
+        self.logger.info(f"Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
+
+    def detect_live_momentum_signals(self) -> Dict[str, str]:
+        """Detect momentum signals using live data"""
+        signals = {}
+        
+        for symbol in self.all_symbols:
+            try:
+                # Get recent data for analysis
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period='5d', interval='1h')
+                
+                if len(hist) > 50:
+                    # Simple momentum analysis
+                    recent_prices = hist['Close'].tail(24)  # Last 24 hours
+                    if len(recent_prices) > 1:
+                        momentum = (recent_prices.iloc[-1] - recent_prices.iloc[0]) / recent_prices.iloc[0]
+                        
+                        if momentum > 0.08:
+                            signals[symbol] = "EXPLOSIVE_UP"
+                        elif momentum > 0.04:
+                            signals[symbol] = "STRONG_UP"
+                        elif momentum < -0.05:
+                            signals[symbol] = "STRONG_DOWN"
+                        elif momentum < -0.03:
+                            signals[symbol] = "REVERSAL_DOWN"
+                        else:
+                            signals[symbol] = "NEUTRAL"
+                    else:
+                        signals[symbol] = "NEUTRAL"
+                else:
+                    signals[symbol] = "NEUTRAL"
+                    
+            except Exception as e:
+                self.logger.debug(f"Signal detection failed for {symbol}: {e}")
+                signals[symbol] = "NEUTRAL"
+        
+        return signals
+
+    def generate_daily_report(self) -> str:
+        """Generate comprehensive daily report"""
+        current_time = datetime.now()
+        date_str = current_time.strftime('%Y-%m-%d')
+        
+        portfolio_value = self.calculate_portfolio_value_live()
+        total_return = portfolio_value - self.initial_balance
         return_pct = (total_return / self.initial_balance) * 100
         
-        max_value = max([day['portfolio_value'] for day in self.daily_values])
-        min_value = min([day['portfolio_value'] for day in self.daily_values])
+        # Count today's trades
+        today_trades = [t for t in self.trades if t['date'] == date_str]
         
-        total_trades = len(self.trades)
+        # Active positions
+        active_positions = [(symbol, pos) for symbol, pos in self.positions.items() if pos['shares'] > 0]
         
-        results = {
-            'initial_balance': self.initial_balance,
-            'final_portfolio_value': final_value,
-            'total_return': total_return,
-            'return_percentage': return_pct,
-            'max_value': max_value,
-            'min_value': min_value,
-            'total_trades': total_trades,
-            'trading_days': len(self.daily_values),
-            'target_met': return_pct >= 10.0
-        }
+        report = f"""
+🚀 PURE $5K DAILY REPORT - {date_str}
+{'='*50}
+💰 Portfolio Value: ${portfolio_value:,.2f}
+💵 Cash Available: ${self.cash:,.2f} 
+📊 Total Return: ${total_return:+,.2f} ({return_pct:+.2f}%)
+🔄 Trades Today: {len(today_trades)}
+📈 Active Positions: {len(active_positions)}
+
+📊 POSITION BREAKDOWN:
+"""
         
-        # Print results
-        print(f"\n🎯 ENHANCED PURE $5K RESULTS ({days} DAYS)")
-        print("=" * 60)
-        print(f"📈 Initial Balance:        $  {self.initial_balance:,.2f}")
-        print(f"📈 Final Portfolio Value:  $  {final_value:,.2f}")
-        print(f"💰 Total Return:           $    {total_return:,.2f}")
-        print(f"📊 Return %:                    {return_pct:.2f}%")
-        print(f"📈 Maximum Value:          $  {max_value:,.2f}")
-        print(f"📉 Minimum Value:          $  {min_value:,.2f}")
-        print(f"🔄 Total Trades:               {total_trades}")
-        print(f"📅 Trading Days:               {len(self.daily_values)}")
-        print(f"🔧 Enhanced Features Used:     Volume filters, EMA trends, trailing stops, cooldowns")
+        for symbol, position in active_positions:
+            current_price = self.get_live_price(symbol)
+            position_value = position['shares'] * current_price
+            position_return = ((current_price - position['avg_price']) / position['avg_price']) * 100
+            
+            report += f"   {symbol}: {position['shares']:.6f} @ ${current_price:.4f} = ${position_value:.2f} ({position_return:+.1f}%)\n"
         
-        if return_pct >= 10.0:
-            print(f"\n🎉 TARGET MET! {return_pct:.2f}% >= 10% TARGET!")
-        else:
-            print(f"\n❌ Target not met: {return_pct:.2f}% < 10%")
-            print(f"💡 Enhanced system provides better risk management and signal quality")
+        if today_trades:
+            report += f"\n🔄 TODAY'S TRADES:\n"
+            for trade in today_trades:
+                report += f"   {trade['action']} {trade['shares']:.6f} {trade['symbol']} @ ${trade['price']:.4f} - {trade['reason']}\n"
         
-        return results
+        return report
+
+    def save_daily_data(self) -> None:
+        """Save daily trading data"""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Save positions
+        positions_file = f"app/data/live/positions_{timestamp}.json"
+        with open(positions_file, 'w') as f:
+            json.dump(self.positions, f, indent=2)
+        
+        # Save trades
+        trades_file = f"app/data/live/trades_{timestamp}.json"
+        with open(trades_file, 'w') as f:
+            json.dump(self.trades, f, indent=2, default=str)
+        
+        # Save daily values
+        values_file = f"app/data/live/daily_values_{timestamp}.json"
+        with open(values_file, 'w') as f:
+            json.dump(self.daily_values, f, indent=2, default=str)
+
+    def start_live_monitoring(self, monitoring_interval: int = 300) -> None:
+        """Start live monitoring with specified interval (seconds)"""
+        self.monitoring_active = True
+        self.daily_start_value = self.calculate_portfolio_value_live()
+        
+        print(f"🚀 Starting live monitoring - {'PAPER' if self.paper_trading else 'LIVE'} trading mode")
+        print(f"⏰ Monitoring interval: {monitoring_interval} seconds")
+        print(f"📊 Risk management: Active")
+        
+        # Schedule daily report
+        schedule.every().day.at("16:05").do(self.generate_and_send_daily_report)
+        
+        try:
+            while self.monitoring_active and not self.emergency_stop:
+                # Run monitoring cycle
+                self.run_live_monitoring_cycle()
+                
+                # Run scheduled tasks
+                schedule.run_pending()
+                
+                # Save data periodically
+                if len(self.daily_values) % 12 == 0:  # Every hour if 5-minute intervals
+                    self.save_daily_data()
+                
+                # Wait for next cycle
+                time.sleep(monitoring_interval)
+                
+        except KeyboardInterrupt:
+            print("\n🛑 Monitoring stopped by user")
+        except Exception as e:
+            self.logger.error(f"Monitoring error: {e}")
+            self.send_alert(f"Monitoring system error: {e}")
+        finally:
+            self.stop_monitoring()
+
+    def generate_and_send_daily_report(self) -> None:
+        """Generate and send daily report"""
+        report = self.generate_daily_report()
+        print(report)
+        
+        # Save report
+        date_str = datetime.now().strftime('%Y%m%d')
+        report_file = f"app/logs/daily_report_{date_str}.txt"
+        with open(report_file, 'w') as f:
+            f.write(report)
+        
+        self.logger.info(f"Daily report saved to {report_file}")
+
+    def stop_monitoring(self) -> None:
+        """Stop live monitoring and save final data"""
+        self.monitoring_active = False
+        self.save_daily_data()
+        
+        final_report = self.generate_daily_report()
+        print(f"\n🏁 FINAL REPORT:\n{final_report}")
+        
+        print("📊 Live monitoring stopped - all data saved")
 
 def main():
     """Main execution function"""
     try:
         # Create pure $5K trading system
-        system = Pure5KTradingSystem(initial_balance=5000.0)
+        system = Pure5KLiveTradingSystem(initial_balance=5000.0)
         
         # Run 30-day backtest
         results = system.run_pure_5k_backtest(days=30)
