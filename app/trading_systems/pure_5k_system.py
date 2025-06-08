@@ -78,9 +78,9 @@ class Pure5KTradingSystem:
         
         # REBALANCED ALLOCATION STRATEGY
         self.crypto_allocation = 0.70     # 70% crypto (reduced from 70%)
-        self.energy_allocation = 0.10     # 10% energy sector (more stocks now)
-        self.tech_allocation = 0.15       # 15% tech sector (increased from 10%)
-        self.etf_allocation = 0.05        # 5% ETFs for stability (increased from 5%)
+        self.energy_allocation = 0.00     # 10% energy sector (more stocks now)
+        self.tech_allocation = 0.30       # 15% tech sector (increased from 10%)
+        self.etf_allocation = 0.00        # 5% ETFs for stability (increased from 5%)
         
         # Market timezone handling
         self.market_tz = pytz.timezone('America/New_York')
