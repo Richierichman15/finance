@@ -1132,6 +1132,145 @@ class Pure5KLiveTradingSystem:
         
         print("📊 Live monitoring stopped - all data saved")
 
+    def show_trade_summary(self) -> None:
+        """Show detailed trade summary for debugging"""
+        print("\n🔍 DETAILED TRADE HISTORY:")
+        print("=" * 80)
+        
+        for i, trade in enumerate(self.trades, 1):
+            print(f"{i:2d}. {trade['date']} | {trade['action']:4s} | {trade['symbol']:8s} | "
+                  f"{trade['shares']:10.6f} @ ${trade['price']:8.4f} | "
+                  f"${trade['amount']:8.2f} | {trade['strategy']}")
+            if trade['reason']:
+                print(f"     └─ {trade['reason']}")
+        
+        print("\n🔍 TRADE SUMMARY BY TYPE:")
+        strategies = {}
+        for trade in self.trades:
+            strategy = trade['strategy']
+            if strategy not in strategies:
+                strategies[strategy] = {'count': 0, 'total_amount': 0}
+            strategies[strategy]['count'] += 1
+            strategies[strategy]['total_amount'] += trade['amount']
+        
+        for strategy, stats in strategies.items():
+            print(f"   {strategy}: {stats['count']} trades, ${stats['total_amount']:,.2f} total")
+
+    def run_pure_5k_backtest(self, days: int = 30) -> Dict:
+        """Run backtest simulation for specified number of days"""
+        try:
+            print(f"\n🚀 Starting Pure $5K backtest simulation - {days} days")
+            print("\n💰 INITIAL PORTFOLIO ALLOCATION:")
+            print(f"🪙 Crypto: {self.crypto_allocation:.0%}")
+            print(f"💻 Tech: {self.tech_allocation:.0%}")
+            print(f"⚡ Energy: {self.energy_allocation:.0%}")
+            print(f"📈 ETFs: {self.etf_allocation:.0%}")
+            
+            # Cache historical data
+            self.cache_historical_data(days=days)
+            
+            # FIXED: Generate proper historical date range
+            end_date = datetime.now(self.utc) - timedelta(days=1)  # End yesterday to ensure we have data
+            start_date = end_date - timedelta(days=days)
+            date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+            
+            print(f"\n📅 BACKTEST PERIOD: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+            
+            # Run simulation for each day
+            for i, date in enumerate(date_range):
+                date_str = date.strftime('%Y-%m-%d')
+                self.simulate_pure_trading_day(date_str, is_first_day=(i==0))
+            
+            # Calculate final results
+            final_date_str = date_range[-1].strftime('%Y-%m-%d')
+            final_value = self.calculate_portfolio_value(final_date_str)
+            total_return = final_value - self.initial_balance
+            return_percentage = (total_return / self.initial_balance) * 100
+            
+            # FIXED: Generate final position breakdown with correct parameter order
+            print("\n📊 FINAL POSITION BREAKDOWN:")
+            total_position_value = 0
+            for symbol, position in self.positions.items():
+                if position['shares'] > 0:
+                    # FIXED: Correct parameter order
+                    current_price = self.get_price_from_cache(symbol, final_date_str)
+                    if current_price > 0:
+                        position_value = position['shares'] * current_price
+                        position_return = ((current_price - position['avg_price']) / position['avg_price']) * 100
+                        total_position_value += position_value
+                        print(f"   {symbol}: {position['shares']:.6f} shares @ ${current_price:.4f} = ${position_value:.2f} ({position_return:+.1f}%)")
+                    else:
+                        print(f"   {symbol}: {position['shares']:.6f} shares @ PRICE ERROR = $0.00")
+            
+            # DEBUGGING: Validate the returns
+            print("\n🔍 RETURN VALIDATION:")
+            print(f"   📊 Initial Investment: ${self.initial_balance:,.2f}")
+            print(f"   📈 Final Positions Value: ${total_position_value:.2f}")
+            print(f"   💵 Final Cash: ${self.cash:.2f}")
+            print(f"   🧮 Calculated Total: ${total_position_value + self.cash:.2f}")
+            print(f"   📊 System Calculated: ${final_value:.2f}")
+            print(f"   ⚖️  Difference: ${abs((total_position_value + self.cash) - final_value):.2f}")
+            
+            # Analyze trade performance
+            print("\n📈 TRADE ANALYSIS:")
+            buy_trades = [t for t in self.trades if t['action'] == 'BUY']
+            sell_trades = [t for t in self.trades if t['action'] == 'SELL']
+            print(f"   🛒 Buy Trades: {len(buy_trades)}")
+            print(f"   💰 Sell Trades: {len(sell_trades)}")
+            
+            # Show biggest contributors to returns
+            position_contributions = []
+            for symbol, position in self.positions.items():
+                if position['shares'] > 0:
+                    current_price = self.get_price_from_cache(symbol, final_date_str)
+                    if current_price > 0:
+                        position_value = position['shares'] * current_price
+                        initial_investment = position['shares'] * position['avg_price']
+                        contribution = position_value - initial_investment
+                        position_contributions.append((symbol, contribution, position_value))
+            
+            # Sort by contribution
+            position_contributions.sort(key=lambda x: x[1], reverse=True)
+            print(f"\n🏆 TOP PERFORMERS:")
+            for i, (symbol, contribution, value) in enumerate(position_contributions[:5]):
+                print(f"   {i+1}. {symbol}: +${contribution:.2f} (${value:.2f} current value)")
+            
+            print("\n📈 TRADING STATISTICS:")
+            print(f"   Total Trades: {len(self.trades)}")
+            print(f"   Initial Balance: ${self.initial_balance:,.2f}")
+            print(f"   Final Value: ${final_value:,.2f}")
+            print(f"   Total Return: ${total_return:+,.2f} ({return_percentage:+.2f}%)")
+            print(f"   Available Cash: ${self.cash:,.2f}")
+            print(f"   Annualized Return: {(return_percentage * 365 / days):+.1f}%")
+            
+            # Show detailed trade summary for debugging
+            self.show_trade_summary()
+            
+            results = {
+                'initial_balance': self.initial_balance,
+                'final_value': final_value,
+                'total_return': total_return,
+                'return_percentage': return_percentage,
+                'annualized_return': (return_percentage * 365 / days),
+                'days': days,
+                'trades': len(self.trades),
+                'target_met': return_percentage >= 10.0,
+                'final_cash': self.cash,
+                'positions': self.positions,
+                'start_date': start_date.strftime('%Y-%m-%d'),
+                'end_date': end_date.strftime('%Y-%m-%d'),
+                'position_contributions': position_contributions
+            }
+            
+            return results
+            
+        except Exception as e:
+            import traceback
+            return {
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            }
+
 def main():
     """Main execution function"""
     try:
