@@ -526,12 +526,13 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
         with open(signals_file, 'w') as f:
             json.dump(self.trade_signals_log, f, indent=2)
 
-    def start_live_monitoring(self, interval_minutes: int = 5) -> None:
+    def start_monitoring(self, interval_minutes: int = 5, duration_hours: int = 8) -> None:
         """
-        STEP 1-5: Start comprehensive live monitoring system
+        Start the live monitoring system for a specified duration
         
         Args:
-            interval_minutes: How often to run monitoring cycles (default: 5 minutes)
+            interval_minutes: How often to check for signals (default: 5 minutes)
+            duration_hours: How long to run the monitoring (default: 8 hours)
         """
         self.monitoring_active = True
         self.daily_start_value = self.calculate_live_portfolio_value()
@@ -541,9 +542,16 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
         print(f"📝 Mode: {'PAPER TRADING' if self.paper_trading else 'LIVE TRADING'}")
         print(f"💰 Starting Value: ${self.daily_start_value:,.2f}")
         print(f"⏰ Monitoring Interval: {interval_minutes} minutes")
+        print(f"⌛ Duration: {duration_hours} hours")
         print(f"🛡️  Risk Management: ACTIVE")
         print(f"📊 Enhanced Logging: ENABLED")
         print(f"📈 Daily Reports: ENABLED")
+        
+        # Execute initial portfolio allocation
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        print("\n🔄 Executing initial portfolio allocation...")
+        self.execute_day_1_intelligent_allocation(current_date)
+        print(f"✅ Initial allocation complete")
         
         # Schedule daily report at market close
         schedule.every().day.at("16:05").do(self._generate_and_save_daily_report)
@@ -553,10 +561,17 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
         
         try:
             cycle_count = 0
+            start_time = datetime.now()
+            end_time = start_time + timedelta(hours=duration_hours)
+            
             while self.monitoring_active and not self.emergency_stop:
+                current_time = datetime.now()
+                if current_time >= end_time:
+                    print(f"\n⌛ Monitoring duration ({duration_hours} hours) completed")
+                    break
+                    
                 cycle_count += 1
-                
-                print(f"\n⏰ Monitoring Cycle #{cycle_count} - {datetime.now().strftime('%H:%M:%S')}")
+                print(f"\n⏰ Monitoring Cycle #{cycle_count} - {current_time.strftime('%H:%M:%S')}")
                 
                 # Run main monitoring cycle
                 self.run_monitoring_cycle()
@@ -574,6 +589,11 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
                 return_pct = ((current_value - self.initial_balance) / self.initial_balance) * 100
                 print(f"📊 Portfolio: ${current_value:,.2f} ({return_pct:+.2f}%) | Trades Today: {self.daily_trade_count}")
                 
+                # Calculate time remaining
+                time_remaining = end_time - current_time
+                hours_remaining = time_remaining.total_seconds() / 3600
+                print(f"⏳ Time Remaining: {hours_remaining:.1f} hours")
+                
                 # Wait for next cycle
                 time.sleep(interval_minutes * 60)
                 
@@ -582,6 +602,7 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
         except Exception as e:
             self.logger.error(f"Critical monitoring error: {e}")
             self.send_alert(f"Monitoring system crashed: {e}", "CRITICAL")
+            raise  # Re-raise the exception for proper error handling
         finally:
             self.stop_monitoring()
 
@@ -644,7 +665,7 @@ def main():
     
     try:
         # STEP 2: Start monitoring (5-minute intervals)
-        system.start_live_monitoring(interval_minutes=5)
+        system.start_monitoring(interval_minutes=5, duration_hours=8)
         
     except Exception as e:
         print(f"❌ System error: {e}")

@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2025-06-09T08:31:20.937486",
+    "date": "2025-06-09",
+    "symbol": "KOLD",
+    "action": "BUY",
+    "shares": 8.38222945867113,
+    "price": 23.860000610351562,
+    "amount": 200.0,
+    "reason": "Strong momentum signal",
+    "portfolio_value": 5000.0,
+    "paper_trade": true
+  },
+  {
+    "timestamp": "2025-06-09T08:40:00.305649",
+    "date": "2025-06-09",
+    "symbol": "KOLD",
+    "action": "BUY",
+    "shares": 8.392782234171987,
+    "price": 23.829999923706055,
+    "amount": 199.99999999999997,
+    "reason": "Strong momentum signal",
+    "portfolio_value": 4999.74852736062,
+    "paper_trade": true
+  },
+  {
+    "timestamp": "2025-06-09T08:45:19.344470",
+    "date": "2025-06-09",
+    "symbol": "KOLD",
+    "action": "BUY",
+    "shares": 8.401596195590688,
+    "price": 23.80500030517578,
+    "amount": 200.00000000000003,
+    "reason": "Strong momentum signal",
+    "portfolio_value": 4999.329158467458,
+    "paper_trade": true
+  },
+  {
+    "timestamp": "2025-06-09T08:50:44.705517",
+    "date": "2025-06-09",
+    "symbol": "KOLD",
+    "action": "BUY",
+    "shares": 8.392782234171987,
+    "price": 23.829999923706055,
+    "amount": 199.99999999999997,
+    "reason": "Strong momentum signal",
+    "portfolio_value": 4999.958564060555,
+    "paper_trade": true
+  }
+]

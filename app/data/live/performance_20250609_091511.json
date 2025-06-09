@@ -1,0 +1,82 @@
+[
+  {
+    "timestamp": "2025-06-09T08:31:27.713683",
+    "portfolio_value": 5000.0,
+    "cash": 4800.0,
+    "total_return_pct": 0.0,
+    "daily_return_pct": 0.0,
+    "drawdown_pct": 0.0,
+    "active_positions": 1,
+    "daily_trades": 1
+  },
+  {
+    "timestamp": "2025-06-09T08:40:02.694271",
+    "portfolio_value": 4999.74852736062,
+    "cash": 4600.0,
+    "total_return_pct": -0.005029452787603078,
+    "daily_return_pct": -0.005029452787603078,
+    "drawdown_pct": -0.012372345140247489,
+    "active_positions": 1,
+    "daily_trades": 2
+  },
+  {
+    "timestamp": "2025-06-09T08:45:22.994323",
+    "portfolio_value": 4999.329158467458,
+    "cash": 4400.0,
+    "total_return_pct": -0.013416830650839984,
+    "daily_return_pct": -0.013416830650839984,
+    "drawdown_pct": -0.011739611044558843,
+    "active_positions": 1,
+    "daily_trades": 3
+  },
+  {
+    "timestamp": "2025-06-09T08:50:44.758949",
+    "portfolio_value": 4999.958564060555,
+    "cash": 4200.0,
+    "total_return_pct": -0.0008287187889072811,
+    "daily_return_pct": -0.0008287187889072811,
+    "drawdown_pct": -0.010798749248879176,
+    "active_positions": 1,
+    "daily_trades": 4
+  },
+  {
+    "timestamp": "2025-06-09T08:55:53.016026",
+    "portfolio_value": 5003.3188453621,
+    "cash": 4200.0,
+    "total_return_pct": 0.06637690724199274,
+    "daily_return_pct": 0.06637690724199274,
+    "drawdown_pct": 0.0,
+    "active_positions": 1,
+    "daily_trades": 4
+  },
+  {
+    "timestamp": "2025-06-09T09:01:10.298367",
+    "portfolio_value": 5007.343806837257,
+    "cash": 4200.0,
+    "total_return_pct": 0.1468761367451407,
+    "daily_return_pct": 0.1468761367451407,
+    "drawdown_pct": 0.0,
+    "active_positions": 1,
+    "daily_trades": 4
+  },
+  {
+    "timestamp": "2025-06-09T09:06:28.539735",
+    "portfolio_value": 5009.358016345155,
+    "cash": 4200.0,
+    "total_return_pct": 0.18716032690310386,
+    "daily_return_pct": 0.18716032690310386,
+    "drawdown_pct": 0.0,
+    "active_positions": 1,
+    "daily_trades": 4
+  },
+  {
+    "timestamp": "2025-06-09T09:11:43.935450",
+    "portfolio_value": 5008.686613175856,
+    "cash": 4200.0,
+    "total_return_pct": 0.1737322635171222,
+    "daily_return_pct": 0.1737322635171222,
+    "drawdown_pct": 0.0,
+    "active_positions": 1,
+    "daily_trades": 4
+  }
+]

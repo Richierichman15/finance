@@ -456,6 +456,8 @@ class Pure5KLiveTradingSystem:
 
     def execute_day_1_intelligent_allocation(self, date: str) -> None:
         """Execute intelligent Day 1 allocation across expanded universe"""
+        self.logger.info("Starting Day 1 portfolio allocation")
+        
         print(f"\n🚀 DAY 1 PURE $5K ALLOCATION - {date}")
         print("=" * 60)
         
@@ -466,25 +468,38 @@ class Pure5KLiveTradingSystem:
         etf_budget = self.cash * self.etf_allocation
         
         print(f"\n💰 ALLOCATION BUDGETS:")
-        print(f"   🪙 Crypto: ${crypto_budget:.2f}")
-        print(f"   💻 Tech: ${tech_budget:.2f}")
-        print(f"   ⚡ Energy: ${energy_budget:.2f}")
-        print(f"   📈 ETFs: ${etf_budget:.2f}")
+        print(f"   🪙 Crypto: ${crypto_budget:.2f} ({self.crypto_allocation:.0%})")
+        print(f"   💻 Tech: ${tech_budget:.2f} ({self.tech_allocation:.0%})")
+        print(f"   ⚡ Energy: ${energy_budget:.2f} ({self.energy_allocation:.0%})")
+        print(f"   📈 ETFs: ${etf_budget:.2f} ({self.etf_allocation:.0%})")
         
+        # Calculate per-symbol budgets
         crypto_per_symbol = crypto_budget / len(self.crypto_symbols)
-        energy_per_symbol = energy_budget / len(self.energy_stocks)
+        energy_per_symbol = energy_budget / len(self.energy_stocks) if len(self.energy_stocks) > 0 else 0
         tech_per_symbol = tech_budget / len(self.tech_stocks)
-        etf_per_symbol = etf_budget / len(self.etf_symbols)
+        etf_per_symbol = etf_budget / len(self.etf_symbols) if len(self.etf_symbols) > 0 else 0
+        
+        print(f"\n💵 PER-SYMBOL ALLOCATION:")
+        print(f"   🪙 Crypto: ${crypto_per_symbol:.2f} per symbol")
+        print(f"   💻 Tech: ${tech_per_symbol:.2f} per symbol")
+        if energy_per_symbol > 0:
+            print(f"   ⚡ Energy: ${energy_per_symbol:.2f} per symbol")
+        if etf_per_symbol > 0:
+            print(f"   📈 ETFs: ${etf_per_symbol:.2f} per symbol")
         
         total_invested = 0.0
+        failed_symbols = []
         
         # Invest in all cryptos
         print(f"\n🪙 CRYPTO INVESTMENTS ({self.crypto_allocation:.0%}):")
+        print("   Symbol      Shares           Price         Amount     % of Portfolio")
+        print("   " + "-"*65)
         for symbol in self.crypto_symbols:
             price = self.get_price_from_cache(symbol, date)
             if price > 0:
                 investment_amount = crypto_per_symbol
                 shares = investment_amount / price
+                portfolio_pct = (investment_amount / self.initial_balance) * 100
                 
                 self.positions[symbol] = {
                     'shares': shares,
@@ -495,35 +510,22 @@ class Pure5KLiveTradingSystem:
                 self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Crypto_Allocation')
                 total_invested += investment_amount
                 
-                print(f"   🪙 {symbol}: {shares:.8f} shares @ ${price:.4f} = ${investment_amount:.2f}")
-        
-        # Invest in energy stocks
-        if self.energy_allocation > 0:
-            print(f"\n⚡ ENERGY INVESTMENTS ({self.energy_allocation:.0%}):")
-            for symbol in self.energy_stocks:
-                price = self.get_price_from_cache(symbol, date)
-                if price > 0:
-                    investment_amount = energy_per_symbol
-                    shares = investment_amount / price
-                    
-                    self.positions[symbol] = {
-                        'shares': shares,
-                        'avg_price': price,
-                        'category': 'energy'
-                    }
-                    
-                    self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Energy_Allocation')
-                    total_invested += investment_amount
-                    
-                    print(f"   ⚡ {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
+                print(f"   {symbol:<10} {shares:>12.8f} @ ${price:>8.4f} = ${investment_amount:>8.2f} ({portfolio_pct:>5.1f}%)")
+                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${price:.4f} = ${investment_amount:.2f}")
+            else:
+                failed_symbols.append(symbol)
+                self.logger.warning(f"Failed to get price for {symbol}")
         
         # Invest in tech stocks
         print(f"\n💻 TECH INVESTMENTS ({self.tech_allocation:.0%}):")
+        print("   Symbol      Shares           Price         Amount     % of Portfolio")
+        print("   " + "-"*65)
         for symbol in self.tech_stocks:
             price = self.get_price_from_cache(symbol, date)
             if price > 0:
                 investment_amount = tech_per_symbol
                 shares = investment_amount / price
+                portfolio_pct = (investment_amount / self.initial_balance) * 100
                 
                 self.positions[symbol] = {
                     'shares': shares,
@@ -534,31 +536,25 @@ class Pure5KLiveTradingSystem:
                 self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Tech_Allocation')
                 total_invested += investment_amount
                 
-                print(f"   💻 {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
+                print(f"   {symbol:<10} {shares:>12.8f} @ ${price:>8.4f} = ${investment_amount:>8.2f} ({portfolio_pct:>5.1f}%)")
+                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${price:.4f} = ${investment_amount:.2f}")
+            else:
+                failed_symbols.append(symbol)
+                self.logger.warning(f"Failed to get price for {symbol}")
         
-        # Invest in ETFs
-        if self.etf_allocation > 0:
-            print(f"\n📈 ETF INVESTMENTS ({self.etf_allocation:.0%}):")
-            for symbol in self.etf_symbols:
-                price = self.get_price_from_cache(symbol, date)
-                if price > 0:
-                    investment_amount = etf_per_symbol
-                    shares = investment_amount / price
-                    
-                    self.positions[symbol] = {
-                        'shares': shares,
-                        'avg_price': price,
-                        'category': 'etf'
-                    }
-                    
-                    self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_ETF_Allocation')
-                    total_invested += investment_amount
-                    
-                    print(f"   📈 {symbol}: {shares:.4f} shares @ ${price:.2f} = ${investment_amount:.2f}")
-        
+        # Summary
         self.cash -= total_invested
-        print(f"\n💸 Total Day 1 Investment: ${total_invested:.2f}")
-        print(f"💵 Remaining Cash: ${self.cash:.2f}")
+        print("\n📊 ALLOCATION SUMMARY:")
+        print(f"   💰 Total Investment: ${total_invested:.2f} ({(total_invested/self.initial_balance)*100:.1f}% of portfolio)")
+        print(f"   💵 Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
+        print(f"   📈 Number of Positions: {len([p for p in self.positions.values() if p['shares'] > 0])}")
+        
+        if failed_symbols:
+            print(f"\n⚠️  Failed to allocate to {len(failed_symbols)} symbols:")
+            for symbol in failed_symbols:
+                print(f"   - {symbol}")
+        
+        self.logger.info(f"Day 1 allocation complete: ${total_invested:.2f} invested, ${self.cash:.2f} cash remaining")
 
     def _record_trade(self, date: str, symbol: str, action: str, shares: float, 
                      price: float, amount: float, strategy: str, reason: str = ""):

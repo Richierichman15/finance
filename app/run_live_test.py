@@ -22,7 +22,7 @@ def quick_test():
     
     # Initialize with all safety features
     system = Pure5KLiveSystem(
-        initial_balance=2500.0,    # STEP 5: Smaller capital
+        initial_balance=5000.0,    # Using full amount for better testing
         paper_trading=True         # STEP 1: Paper trading mode
     )
     
@@ -48,7 +48,7 @@ def full_day_test():
     print()
     
     system = Pure5KLiveSystem(
-        initial_balance=2500.0,
+        initial_balance=5000.0,
         paper_trading=True
     )
     
@@ -66,27 +66,59 @@ def full_day_test():
         print(f"\n❌ Test failed: {e}")
         return False
 
+def two_week_test():
+    """Run a two-week trading test"""
+    print("🚀 TWO WEEK LIVE SYSTEM TEST")
+    print("="*40)
+    print("Running two-week test with all safety features")
+    print()
+    
+    system = Pure5KLiveSystem(
+        initial_balance=5000.0,    # Using full amount for better comparison
+        paper_trading=True         # Ensure paper trading
+    )
+    
+    try:
+        print("\n📈 Starting two-week live paper trading test...")
+        print("⚠️  Press Ctrl+C to stop the test safely")
+        
+        # Start monitoring with standard settings
+        system.start_monitoring(
+            interval_minutes=5,     # 5-minute monitoring cycles
+            duration_hours=336      # Two weeks (14 days * 24 hours)
+        )
+        
+        print("\n✅ Two-week test completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Test failed: {e}")
+        return False
+
 def main():
     """Main test menu"""
     print("🚀 PURE $5K LIVE TRADING SYSTEM TEST MENU")
     print("="*50)
     print("1. Quick Test (30 minutes)")
     print("2. Full Day Test (8 hours)")
-    print("3. Exit")
+    print("3. Two Week Test")
+    print("4. Exit")
     print()
     
     while True:
-        choice = input("Select test type (1/2/3): ").strip()
+        choice = input("Select test type (1/2/3/4): ").strip()
         
         if choice == '1':
             return quick_test()
         elif choice == '2':
             return full_day_test()
         elif choice == '3':
+            return two_week_test()
+        elif choice == '4':
             print("👋 Goodbye!")
             return True
         else:
-            print("❌ Invalid choice. Please select 1, 2, or 3.")
+            print("❌ Invalid choice. Please select 1, 2, 3, or 4.")
 
 if __name__ == "__main__":
     main() 
