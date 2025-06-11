@@ -4,8 +4,13 @@ Kraken API Integration Test Script
 Tests both public and private API functionality
 """
 
-from app.services.kraken import kraken_api
 import sys
+import os
+
+# Add parent directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from app.services.kraken import kraken_api
 import time
 
 def test_public_api():

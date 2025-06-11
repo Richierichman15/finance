@@ -28,6 +28,9 @@ import threading
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Import Kraken integration
+from app.services.kraken import kraken_api
+
 # Enhanced logging configuration
 logging.basicConfig(
     level=logging.INFO, 
@@ -55,47 +58,85 @@ class Pure5KLiveTradingSystem:
         self.monitoring_active = False
         self.daily_reports = []
         self.alert_thresholds = {
-            'max_daily_loss': -5.0,  # Stop if daily loss > 5%
-            'max_total_loss': -10.0,  # Stop if total loss > 10%
-            'max_position_size': 0.25,  # No single position > 25%
-            'max_trades_per_day': 5,   # Max 5 trades per day
-            'min_cash_reserve': 500.0  # Keep $500 minimum cash
+            'max_daily_loss': -5.0,
+            'max_total_loss': -10.0,
+            'max_position_size': 0.30,
+            'max_trades_per_day': 10,
+            'min_cash_reserve': 500.0
         }
         
         # Enhanced risk management
         self.last_trade_date = {}
         self.trailing_stops = {}
-        self.cooldown_periods = 3
+        self.cooldown_periods = 2  # Reduced from 3 to 2 days
         self.daily_trade_count = 0
         self.daily_start_value = self.initial_balance
         self.emergency_stop = False
         
-        # EXPANDED CRYPTO UNIVERSE - 7 cryptos
+        # Volatility tracking for dynamic stops
+        self.volatility_metrics = {}  # Store volatility data per symbol
+        
+        # EXPANDED CRYPTO UNIVERSE with Kraken symbols
         self.crypto_symbols = [
-            'BTC-USD', 'XRP-USD', 'ETH-USD',
-            'SOL-USD', 'TRX-USD', 'ADA-USD', 'XLM-USD'
+            'XXBTZUSD',  # Bitcoin
+            'XETHZUSD',  # Ethereum
+            'XXRPZUSD',  # Ripple
+            'SOLUSDC',   # Solana (using USDC pair as it has more liquidity)
+            'ADAUSDC',   # Cardano (using USDC pair as it has more liquidity)
+            'TRXUSD',    # Tron
+            'XXLMZUSD',  # Stellar
+            'PAXGUSD'    # Pax Gold
         ]
+        
+        # Symbol mapping for price data (internal format -> Kraken format)
+        self.symbol_map = {
+            'BTC-USD': 'XXBTZUSD',
+            'ETH-USD': 'XETHZUSD',
+            'XRP-USD': 'XXRPZUSD',
+            'SOL-USD': 'SOLUSDC',
+            'ADA-USD': 'ADAUSDC',
+            'TRX-USD': 'TRXUSD',
+            'XLM-USD': 'XXLMZUSD',
+            'PAXG-USD': 'PAXGUSD'
+        }
         
         # EXPANDED STOCK UNIVERSE
         self.energy_stocks = [
-            'XLE', 'KOLD', 'UNG', 'USO', 'NEE', 'DUK', 'LNG', 'XOM', 'PLUG'
+            'PLUG',    # Plug Power - Strong performer
+            'ENPH',    # Enphase Energy - Solar
+            'SEDG',    # SolarEdge - Solar tech
+            'NEE',     # NextEra Energy - Renewables
+            'BE',      # Bloom Energy - Fuel cells
+            'FCEL',    # FuelCell Energy
+            'RUN',     # Sunrun - Solar
+            'NOVA',    # Sunnova - Solar
+            'STEM'     # Stem Inc - Clean energy
         ]
         
         self.tech_stocks = [
-            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD'
+            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD', 'TSM', 'PLTR', 'TTWO'  # Removed CRCL due to poor performance
         ]
         
         self.etf_symbols = [
-            'SPY', 'VTI', 'GLD'
+            'TAN',     # Solar ETF
+            'ICLN',    # Clean Energy ETF
+            'QCLN'     # Clean Tech ETF
         ]
         
         self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
         
         # Portfolio allocation
-        self.crypto_allocation = 0.50
-        self.energy_allocation = 0.00
-        self.tech_allocation = 0.50
-        self.etf_allocation = 0.00
+        self.crypto_allocation = 0.30  # Reduced from 0.50 due to API issues and volatility
+        self.energy_allocation = 0.30  # Added significant allocation due to strong performance
+        self.tech_allocation = 0.35    # Slightly reduced but still significant due to consistent returns
+        self.etf_allocation = 0.05     # Small allocation for stability
+        
+        # Update allocation explanation
+        print(f"\n💰 PORTFOLIO ALLOCATION STRATEGY:")
+        print(f"⚡ Energy: {self.energy_allocation:.0%} - Strong momentum in clean energy")
+        print(f"💻 Tech: {self.tech_allocation:.0%} - Consistent performance across sector")
+        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - Reduced for volatility management")
+        print(f"📈 ETFs: {self.etf_allocation:.0%} - Added for stability")
         
         # Market timezone handling
         self.market_tz = pytz.timezone('America/New_York')
@@ -104,6 +145,14 @@ class Pure5KLiveTradingSystem:
         # Create necessary directories
         os.makedirs('app/logs', exist_ok=True)
         os.makedirs('app/data/live', exist_ok=True)
+        
+        # Enhanced cash management - more aggressive reinvestment
+        self.cash_management = {
+            'target_cash_ratio': 0.15,  # Keep exactly 15% in cash
+            'min_cash_ratio': 0.15,     # Never go below 15%
+            'max_cash_ratio': 0.20,     # Trigger reinvestment above 20%
+            'reinvestment_threshold': 0.16  # Start reinvesting at 16%
+        }
         
         print(f"🚀 PURE $5K LIVE TRADING SYSTEM - {'PAPER' if paper_trading else 'LIVE'} MODE")
         print(f"💰 Initial Capital: ${self.initial_balance:,.2f}")
@@ -247,35 +296,19 @@ class Pure5KLiveTradingSystem:
         return self.get_current_price_online(symbol, date)
 
     def get_current_price_online(self, symbol: str, date: str = None) -> float:
-        """Fallback to online price fetching with multiple data sources"""
-        # Primary: yfinance
-        price = self._try_yfinance(symbol, date)
-        if price > 0:
-            return price
-        
-        # Fallback for crypto: try different suffixes
-        if 'USD' in symbol and price <= 0:
-            alt_symbol = symbol.replace('-USD', '-USDT')
-            price = self._try_yfinance(alt_symbol, date)
-            if price > 0:
-                return price
-        
-        # Last resort: use cached data if available
-        if symbol in self.historical_data_cache:
+        """Get current price with Kraken integration for crypto"""
+        # For crypto symbols, try Kraken first
+        if symbol in self.symbol_map:  # Check if we have a Kraken mapping
             try:
-                cache_data = self.historical_data_cache[symbol]['data']
-                if len(cache_data) > 0:
-                    return float(cache_data['Close'].iloc[-1])
-            except Exception as cache_fallback_error:
-                self.logger.debug(f"Cache fallback failed for {symbol}: {cache_fallback_error}")
+                kraken_symbol = self.symbol_map[symbol]
+                price = kraken_api.get_price(kraken_symbol)
+                if price > 0:
+                    return price
+                self.logger.debug(f"Kraken returned zero price for {symbol} ({kraken_symbol})")
+            except Exception as e:
+                self.logger.debug(f"Kraken price fetch failed for {symbol}: {e}")
         
-        # Only log error for non-problematic symbols
-        if symbol not in ['XEG']:  # Add other known problematic symbols here
-            self.logger.error(f"Could not get price for {symbol}")
-        return 0.0
-
-    def _try_yfinance(self, symbol: str, date: str = None) -> float:
-        """Try to get price from yfinance with improved error handling"""
+        # Fallback to yfinance for stocks or if Kraken fails
         try:
             ticker = yf.Ticker(symbol)
             
@@ -293,20 +326,16 @@ class Pure5KLiveTradingSystem:
                     if not hist.empty:
                         return float(hist['Close'].iloc[-1])
                 except Exception as period_error:
-                    # Only log debug messages for period failures to reduce noise
-                    if self.logger.isEnabledFor(logging.DEBUG):
-                        self.logger.debug(f"Period {period} failed for {symbol}: {period_error}")
                     continue
                     
         except Exception as e:
-            # Only log if it's not a known delisted symbol
             if symbol not in ['XEG']:  # Add other known problematic symbols here
                 self.logger.debug(f"yfinance failed for {symbol}: {e}")
         
         return 0.0
 
     def detect_market_momentum_signals(self, date: str) -> Dict[str, str]:
-        """ENHANCED signal detection with volume, EMA trends, and better filtering"""
+        """ENHANCED signal detection with ultra-aggressive thresholds"""
         signals = {}
         
         for symbol in self.all_symbols:
@@ -319,84 +348,89 @@ class Pure5KLiveTradingSystem:
                     target_date = self.standardize_datetime(date)
                     
                     if len(data) > 0:
-                        # Filter data up to target date
                         try:
                             recent_data = data[data.index <= target_date]
                         except Exception:
                             recent_data = data
                         
-                        if len(recent_data) > 200:  # Need more data for EMAs
-                            
-                            # 1. CALCULATE EMAs FOR TREND BIAS
+                        if len(recent_data) > 200:
                             try:
                                 # Create a proper copy to avoid pandas warnings
                                 recent_data = recent_data.copy()
                                 recent_data['EMA_50'] = recent_data['Close'].ewm(span=50).mean()
                                 recent_data['EMA_200'] = recent_data['Close'].ewm(span=200).mean()
+                                recent_data['EMA_20'] = recent_data['Close'].ewm(span=20).mean()  # Added shorter EMA
                                 
-                                # Current trend bias
+                                # Enhanced trend bias using multiple EMAs
+                                current_ema_20 = recent_data['EMA_20'].iloc[-1]
                                 current_ema_50 = recent_data['EMA_50'].iloc[-1]
                                 current_ema_200 = recent_data['EMA_200'].iloc[-1]
-                                trend_bias = "BULLISH" if current_ema_50 > current_ema_200 else "BEARISH"
+                                
+                                # More sophisticated trend detection
+                                if current_ema_20 > current_ema_50 and current_ema_50 > current_ema_200:
+                                    trend_bias = "STRONG_BULLISH"
+                                elif current_ema_20 > current_ema_50:
+                                    trend_bias = "BULLISH"
+                                elif current_ema_20 < current_ema_50 and current_ema_50 < current_ema_200:
+                                    trend_bias = "STRONG_BEARISH"
+                                else:
+                                    trend_bias = "BEARISH"
                             except:
                                 trend_bias = "NEUTRAL"
                             
-                            # 2. CALCULATE VOLUME METRICS
                             try:
-                                # Average volume over last 20 periods
-                                avg_volume = recent_data['Volume'].tail(20).mean()
+                                # Volume analysis with shorter window
+                                avg_volume = recent_data['Volume'].tail(10).mean()  # Reduced from 20 to 10
                                 current_volume = recent_data['Volume'].iloc[-1]
-                                volume_confirmed = current_volume > (avg_volume * 1.5)
+                                volume_confirmed = current_volume > (avg_volume * 1.1)  # Reduced from 1.2
                             except:
-                                volume_confirmed = True  # Assume confirmed if no volume data
+                                volume_confirmed = True
                             
-                            # 3. MOMENTUM CALCULATIONS
                             try:
-                                # Short-term momentum (6 periods)
+                                # More frequent momentum checks
+                                recent_3 = recent_data['Close'].tail(3)  # Added 3-period momentum
+                                if len(recent_3) >= 2:
+                                    momentum_3 = (recent_3.iloc[-1] - recent_3.iloc[0]) / recent_3.iloc[0]
+                                else:
+                                    momentum_3 = 0
+                                
                                 recent_6 = recent_data['Close'].tail(6)
                                 if len(recent_6) >= 2:
                                     momentum_6 = (recent_6.iloc[-1] - recent_6.iloc[0]) / recent_6.iloc[0]
                                 else:
                                     momentum_6 = 0
                                 
-                                # Medium-term momentum (24 periods)
-                                recent_24 = recent_data['Close'].tail(24)
-                                if len(recent_24) >= 2:
-                                    momentum_24 = (recent_24.iloc[-1] - recent_24.iloc[0]) / recent_24.iloc[0]
+                                recent_12 = recent_data['Close'].tail(12)  # Reduced from 24
+                                if len(recent_12) >= 2:
+                                    momentum_12 = (recent_12.iloc[-1] - recent_12.iloc[0]) / recent_12.iloc[0]
                                 else:
-                                    momentum_24 = 0
+                                    momentum_12 = 0
                                 
-                                # Long-term momentum (50 periods)
-                                recent_50 = recent_data['Close'].tail(50)
-                                if len(recent_50) >= 2:
-                                    momentum_50 = (recent_50.iloc[-1] - recent_50.iloc[0]) / recent_50.iloc[0]
-                                else:
-                                    momentum_50 = 0
-                            except:
-                                momentum_6 = momentum_24 = momentum_50 = 0
-                            
-                            # 4. ENHANCED SIGNAL CLASSIFICATION
-                            # Only trade in direction of trend bias for cleaner signals
-                            if trend_bias == "BULLISH" and volume_confirmed:
-                                if momentum_6 > 0.08:  # >8% in 6 periods + volume
-                                    signals[symbol] = "EXPLOSIVE_UP"
-                                elif momentum_24 > 0.12:  # >12% in 24 periods + volume
-                                    signals[symbol] = "STRONG_UP"
-                                elif momentum_50 > 0.15:  # >15% in 50 periods + volume
-                                    signals[symbol] = "TREND_UP"
-                                elif momentum_6 < -0.08 or momentum_24 < -0.12:
-                                    signals[symbol] = "REVERSAL_DOWN"
+                                # Ultra-aggressive signal thresholds
+                                if trend_bias in ["STRONG_BULLISH", "BULLISH"]:
+                                    if momentum_3 > 0.02:  # New ultra-short term trigger
+                                        signals[symbol] = "EXPLOSIVE_UP"
+                                    elif momentum_6 > 0.03:  # Reduced from 0.05
+                                        signals[symbol] = "STRONG_UP"
+                                    elif momentum_12 > 0.05:  # Reduced from 0.08
+                                        signals[symbol] = "TREND_UP"
+                                    elif momentum_3 < -0.02:  # Quicker reversal detection
+                                        signals[symbol] = "REVERSAL_DOWN"
+                                    else:
+                                        signals[symbol] = "NEUTRAL"
+                                
+                                elif trend_bias in ["STRONG_BEARISH", "BEARISH"]:
+                                    if momentum_3 < -0.02:  # More sensitive to downside
+                                        signals[symbol] = "STRONG_DOWN"
+                                    elif momentum_3 > 0.02:  # Quick counter-trend opportunity
+                                        signals[symbol] = "COUNTER_TREND_UP"
+                                    else:
+                                        signals[symbol] = "BEARISH_HOLD"
+                                
                                 else:
                                     signals[symbol] = "NEUTRAL"
-                            
-                            elif trend_bias == "BEARISH":
-                                # In bearish trends, only take defensive actions
-                                if momentum_6 < -0.05 or momentum_24 < -0.08:
-                                    signals[symbol] = "STRONG_DOWN"
-                                else:
-                                    signals[symbol] = "BEARISH_HOLD"
-                            
-                            else:
+                                    
+                            except:
                                 signals[symbol] = "NEUTRAL"
                         else:
                             signals[symbol] = "NEUTRAL"
@@ -406,25 +440,69 @@ class Pure5KLiveTradingSystem:
                     signals[symbol] = "NEUTRAL"
                     
             except Exception as e:
-                self.logger.warning(f"Enhanced signal detection failed for {symbol}: {e}")
+                self.logger.warning(f"Signal detection failed for {symbol}: {e}")
                 signals[symbol] = "NEUTRAL"
         
         return signals
 
     def update_trailing_stops(self, date: str) -> None:
-        """Update trailing stop levels for all positions"""
+        """Update trailing stop levels with adjusted volatility thresholds"""
         for symbol, position in self.positions.items():
             if position['shares'] > 0:
                 current_price = self.get_price_from_cache(symbol, date)
                 if current_price > 0:
-                    # Initialize trailing stop at 85% of entry price
-                    if symbol not in self.trailing_stops:
-                        self.trailing_stops[symbol] = position['avg_price'] * 0.85
+                    # Calculate volatility-based stop adjustment
+                    volatility = self._calculate_volatility(symbol, date)
                     
-                    # Update trailing stop to 85% of highest price seen
-                    potential_new_stop = current_price * 0.85
+                    # Adjusted stop percentages
+                    if volatility > 0.03:  # High volatility
+                        stop_percentage = 0.92  # Was 0.90
+                    elif volatility > 0.02:  # Medium volatility
+                        stop_percentage = 0.90  # Was 0.88
+                    else:  # Low volatility
+                        stop_percentage = 0.88  # Was 0.85
+                    
+                    # Initialize trailing stop
+                    if symbol not in self.trailing_stops:
+                        self.trailing_stops[symbol] = position['avg_price'] * stop_percentage
+                    
+                    # Update trailing stop with dynamic adjustment
+                    potential_new_stop = current_price * stop_percentage
                     if potential_new_stop > self.trailing_stops[symbol]:
                         self.trailing_stops[symbol] = potential_new_stop
+                        
+                        self.logger.info(f"Updated trailing stop for {symbol}: ${self.trailing_stops[symbol]:.2f} (Volatility: {volatility:.3f})")
+
+    def _calculate_volatility(self, symbol: str, date: str, window: int = 14) -> float:
+        """Calculate asset volatility for dynamic stop adjustment"""
+        try:
+            if symbol in self.historical_data_cache:
+                data = self.historical_data_cache[symbol]['data']
+                target_date = self.standardize_datetime(date)
+                
+                # Get data up to target date
+                historical_data = data[data.index <= target_date].tail(window)
+                
+                if len(historical_data) > 0:
+                    # Calculate daily returns
+                    returns = historical_data['Close'].pct_change().dropna()
+                    
+                    # Calculate volatility (standard deviation of returns)
+                    volatility = returns.std()
+                    
+                    # Store for reference
+                    self.volatility_metrics[symbol] = {
+                        'value': volatility,
+                        'date': date
+                    }
+                    
+                    return volatility
+            
+            return 0.02  # Default to medium volatility if calculation fails
+            
+        except Exception as e:
+            self.logger.warning(f"Volatility calculation failed for {symbol}: {e}")
+            return 0.02  # Default to medium volatility
 
     def check_trailing_stop_exit(self, symbol: str, current_price: float) -> bool:
         """Check if position should be closed due to trailing stop"""
@@ -575,8 +653,111 @@ class Pure5KLiveTradingSystem:
         # Update last trade date for cooldown tracking
         self.last_trade_date[symbol] = date
 
+    def manage_cash_position(self, date: str) -> None:
+        """Actively manage cash position with aggressive reinvestment"""
+        try:
+            portfolio_value = self.calculate_portfolio_value(date)
+            current_cash_ratio = self.cash / portfolio_value
+            
+            # Check if we have excess cash
+            if current_cash_ratio > self.cash_management['reinvestment_threshold']:
+                target_cash = portfolio_value * self.cash_management['target_cash_ratio']
+                excess_cash = self.cash - target_cash
+                
+                if excess_cash > 100:  # Minimum reinvestment amount reduced to $100
+                    self.logger.info(f"Excess cash detected: ${excess_cash:.2f}")
+                    
+                    # Get current signals
+                    signals = self.detect_market_momentum_signals(date)
+                    
+                    # Find best opportunities (respecting allocation settings)
+                    opportunities = []
+                    for symbol, signal in signals.items():
+                        if signal in ["EXPLOSIVE_UP", "STRONG_UP", "TREND_UP", "COUNTER_TREND_UP"]:
+                            # Check if symbol is in allowed categories based on allocations
+                            if (symbol in self.crypto_symbols and self.crypto_allocation > 0) or \
+                               (symbol in self.tech_stocks and self.tech_allocation > 0) or \
+                               (symbol in self.energy_stocks and self.energy_allocation > 0) or \
+                               (symbol in self.etf_symbols and self.etf_allocation > 0):
+                                # Calculate recent performance
+                                performance = self._calculate_recent_performance(symbol, date)
+                                opportunities.append((symbol, signal, performance))
+                    
+                    # Sort by performance
+                    opportunities.sort(key=lambda x: x[2], reverse=True)
+                    
+                    # Reinvest in top opportunities
+                    cash_to_deploy = excess_cash
+                    max_position_size = portfolio_value * 0.30  # Max 30% per position
+                    
+                    for symbol, signal, perf in opportunities[:5]:  # Top 5 opportunities
+                        if cash_to_deploy < 100:  # Stop if remaining cash too small
+                            break
+                            
+                        # Calculate position size based on signal strength
+                        if signal == "EXPLOSIVE_UP":
+                            position_size = min(cash_to_deploy * 0.4, 400)
+                        elif signal == "COUNTER_TREND_UP":
+                            position_size = min(cash_to_deploy * 0.3, 300)
+                        else:  # STRONG_UP or TREND_UP
+                            position_size = min(cash_to_deploy * 0.25, 250)
+                        
+                        current_price = self.get_price_from_cache(symbol, date)
+                        if current_price > 0:
+                            # Check existing position size
+                            existing_value = 0
+                            if symbol in self.positions:
+                                existing_value = self.positions[symbol]['shares'] * current_price
+                            
+                            # Adjust position size to respect max position size
+                            if existing_value + position_size > max_position_size:
+                                position_size = max(0, max_position_size - existing_value)
+                            
+                            if position_size >= 100:  # Minimum trade size
+                                shares = position_size / current_price
+                                
+                                # Execute reinvestment
+                                self._add_to_position(symbol, shares, current_price, 
+                                                    self._get_symbol_category(symbol))
+                                self.cash -= position_size
+                                cash_to_deploy -= position_size
+                                
+                                self._record_trade(date, symbol, 'BUY', shares, current_price,
+                                                 position_size, 'Cash_Reinvestment', 
+                                                 f"Aggressive cash reinvestment ({signal})")
+                                
+                                self.logger.info(f"Reinvested ${position_size:.2f} in {symbol}")
+                    
+                    # Update cash ratios
+                    new_cash_ratio = self.cash / self.calculate_portfolio_value(date)
+                    self.logger.info(f"New cash ratio: {new_cash_ratio:.1%}")
+                    
+        except Exception as e:
+            self.logger.error(f"Cash management error: {e}")
+
+    def _calculate_recent_performance(self, symbol: str, date: str, days: int = 5) -> float:
+        """Calculate recent performance for opportunity ranking"""
+        try:
+            if symbol in self.historical_data_cache:
+                data = self.historical_data_cache[symbol]['data']
+                target_date = self.standardize_datetime(date)
+                
+                # Get recent data
+                recent_data = data[data.index <= target_date].tail(days)
+                
+                if len(recent_data) > 1:
+                    start_price = recent_data['Close'].iloc[0]
+                    end_price = recent_data['Close'].iloc[-1]
+                    return ((end_price - start_price) / start_price) * 100
+                    
+            return 0.0
+            
+        except Exception as e:
+            self.logger.debug(f"Performance calculation failed for {symbol}: {e}")
+            return 0.0
+
     def simulate_pure_trading_day(self, date: str, is_first_day: bool = False) -> None:
-        """ENHANCED trading simulation with trailing stops, cooldowns, and better exits"""
+        """ENHANCED trading simulation with improved cash management"""
         print(f"\n📅 {date}")
         print("-" * 50)
         
@@ -585,6 +766,9 @@ class Pure5KLiveTradingSystem:
         else:
             # Update trailing stops for all positions
             self.update_trailing_stops(date)
+            
+            # Manage cash position actively
+            self.manage_cash_position(date)
             
             # Check for trailing stop exits FIRST
             trailing_stop_exits = 0
@@ -624,8 +808,8 @@ class Pure5KLiveTradingSystem:
                 if self.is_in_cooldown(symbol, date):
                     continue
                 
-                # EXPLOSIVE UP signals - buy aggressively (with volume confirmation)
-                if signal == "EXPLOSIVE_UP" and self.cash > 250:
+                # EXPLOSIVE UP signals - buy aggressively
+                if signal in ["EXPLOSIVE_UP", "COUNTER_TREND_UP"] and self.cash > 250:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
                     buy_amount = min(400 if category == 'crypto' else 300, self.cash * 0.4)
                     shares = buy_amount / current_price
@@ -634,14 +818,15 @@ class Pure5KLiveTradingSystem:
                     self.cash -= buy_amount
                     self.last_trade_date[symbol] = date
                     
+                    signal_type = "counter-trend" if signal == "COUNTER_TREND_UP" else "momentum"
                     self._record_trade(date, symbol, 'BUY', shares, current_price, 
-                                     buy_amount, 'Explosive_Momentum', f"Volume-confirmed explosive surge")
+                                     buy_amount, f'{signal_type.capitalize()}_Entry', f"Strong {signal_type} signal")
                     trades_executed += 1
                     
-                    print(f"  💥 EXPLOSIVE BUY: {shares:.6f} {symbol} @ ${current_price:.4f} (Volume confirmed)")
+                    print(f"  💥 {signal_type.upper()} BUY: {shares:.6f} {symbol} @ ${current_price:.4f}")
                 
-                # STRONG UP signals - buy moderately (trend + volume confirmed)
-                elif signal == "STRONG_UP" and self.cash > 200:
+                # STRONG UP and TREND UP signals - buy moderately
+                elif signal in ["STRONG_UP", "TREND_UP"] and self.cash > 200:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
                     buy_amount = min(250 if category == 'crypto' else 200, self.cash * 0.3)
                     shares = buy_amount / current_price
@@ -651,51 +836,17 @@ class Pure5KLiveTradingSystem:
                     self.last_trade_date[symbol] = date
                     
                     self._record_trade(date, symbol, 'BUY', shares, current_price,
-                                     buy_amount, 'Strong_Momentum', f"Trend + volume confirmed")
+                                     buy_amount, 'Trend_Following', f"{signal} signal confirmed")
                     trades_executed += 1
                     
-                    print(f"  🚀 STRONG BUY: {shares:.6f} {symbol} @ ${current_price:.4f} (Trend aligned)")
+                    print(f"  🚀 TREND BUY: {shares:.6f} {symbol} @ ${current_price:.4f}")
                 
-                # TREND UP signals - smaller position (long-term trend)
-                elif signal == "TREND_UP" and self.cash > 150:
-                    category = self.positions.get(symbol, {}).get('category', 'unknown')
-                    buy_amount = min(150, self.cash * 0.2)
-                    shares = buy_amount / current_price
-                    
-                    self._add_to_position(symbol, shares, current_price, category)
-                    self.cash -= buy_amount
-                    self.last_trade_date[symbol] = date
-                    
-                    self._record_trade(date, symbol, 'BUY', shares, current_price,
-                                     buy_amount, 'Trend_Following', f"Long-term trend confirmed")
-                    trades_executed += 1
-                    
-                    print(f"  📈 TREND BUY: {shares:.6f} {symbol} @ ${current_price:.4f} (Trend following)")
-                
-                # REVERSAL DOWN signals - quick exit before trailing stop
-                elif signal == "REVERSAL_DOWN" and symbol in self.positions:
+                # Handle defensive sells and reversals
+                elif signal in ["REVERSAL_DOWN", "STRONG_DOWN"] and symbol in self.positions:
                     if self.positions[symbol]['shares'] > 0:
-                        position_return = self.calculate_position_return(symbol, current_price)
-                        
-                        # Only exit if we're still profitable or loss is manageable
-                        if position_return > -5:  # Don't panic sell big losses
-                            shares_to_sell = self.positions[symbol]['shares'] * 0.6  # Sell 60%
-                            sell_amount = shares_to_sell * current_price
-                            
-                            self.positions[symbol]['shares'] -= shares_to_sell
-                            self.cash += sell_amount
-                            self.last_trade_date[symbol] = date
-                            
-                            self._record_trade(date, symbol, 'SELL', shares_to_sell, current_price,
-                                             sell_amount, 'Reversal_Exit', f"Momentum reversal detected ({position_return:+.1f}%)")
-                            trades_executed += 1
-                            
-                            print(f"  ⚡ REVERSAL EXIT: {shares_to_sell:.6f} {symbol} @ ${current_price:.4f} ({position_return:+.1f}%)")
-                
-                # STRONG DOWN signals - defensive selling
-                elif signal == "STRONG_DOWN" and symbol in self.positions:
-                    if self.positions[symbol]['shares'] > 0:
-                        shares_to_sell = self.positions[symbol]['shares'] * 0.4  # Sell 40%
+                        # More aggressive selling on strong down signals
+                        sell_ratio = 0.6 if signal == "STRONG_DOWN" else 0.4
+                        shares_to_sell = self.positions[symbol]['shares'] * sell_ratio
                         sell_amount = shares_to_sell * current_price
                         position_return = self.calculate_position_return(symbol, current_price)
                         
@@ -704,7 +855,7 @@ class Pure5KLiveTradingSystem:
                         self.last_trade_date[symbol] = date
                         
                         self._record_trade(date, symbol, 'SELL', shares_to_sell, current_price,
-                                         sell_amount, 'Defensive_Exit', f"Strong downtrend ({position_return:+.1f}%)")
+                                         sell_amount, 'Defensive_Exit', f"{signal} detected ({position_return:+.1f}%)")
                         trades_executed += 1
                         
                         print(f"  🛡️  DEFENSIVE SELL: {shares_to_sell:.6f} {symbol} @ ${current_price:.4f} ({position_return:+.1f}%)")
@@ -729,20 +880,49 @@ class Pure5KLiveTradingSystem:
         print(f"  📊 Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
 
     def _add_to_position(self, symbol: str, shares: float, price: float, category: str) -> None:
-        """Helper to add shares to existing position or create new one"""
-        if symbol in self.positions:
-            # Calculate weighted average price
-            total_shares = self.positions[symbol]['shares'] + shares
-            weighted_avg = ((self.positions[symbol]['shares'] * self.positions[symbol]['avg_price']) + 
-                           (shares * price)) / total_shares
-            self.positions[symbol]['shares'] = total_shares
-            self.positions[symbol]['avg_price'] = weighted_avg
-        else:
-            self.positions[symbol] = {
-                'shares': shares,
-                'avg_price': price,
-                'category': category
-            }
+        """Enhanced position management with volatility-based sizing"""
+        try:
+            # Calculate volatility-based position adjustment
+            volatility = self._calculate_volatility(symbol, datetime.now(self.utc).strftime('%Y-%m-%d'))
+            
+            # Adjust position size based on volatility
+            if volatility > 0.03:  # High volatility
+                shares *= 0.8  # Reduce position size
+            elif volatility < 0.01:  # Low volatility
+                shares *= 1.2  # Increase position size
+            
+            if symbol in self.positions:
+                # Calculate weighted average price
+                total_shares = self.positions[symbol]['shares'] + shares
+                weighted_avg = ((self.positions[symbol]['shares'] * self.positions[symbol]['avg_price']) + 
+                               (shares * price)) / total_shares
+                self.positions[symbol]['shares'] = total_shares
+                self.positions[symbol]['avg_price'] = weighted_avg
+            else:
+                self.positions[symbol] = {
+                    'shares': shares,
+                    'avg_price': price,
+                    'category': category
+                }
+                
+            # Log position adjustments
+            self.logger.info(f"Added to {symbol}: {shares:.6f} shares (Volatility: {volatility:.3f})")
+            
+        except Exception as e:
+            self.logger.error(f"Position adjustment failed for {symbol}: {e}")
+            # Fallback to original position sizing
+            if symbol in self.positions:
+                total_shares = self.positions[symbol]['shares'] + shares
+                weighted_avg = ((self.positions[symbol]['shares'] * self.positions[symbol]['avg_price']) + 
+                               (shares * price)) / total_shares
+                self.positions[symbol]['shares'] = total_shares
+                self.positions[symbol]['avg_price'] = weighted_avg
+            else:
+                self.positions[symbol] = {
+                    'shares': shares,
+                    'avg_price': price,
+                    'category': category
+                }
 
     def calculate_portfolio_value(self, date: str) -> float:
         """Calculate total portfolio value including cash"""

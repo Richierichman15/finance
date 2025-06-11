@@ -1,0 +1,170 @@
+[
+  {
+    "timestamp": "2025-06-11T12:10:33.083858-04:00",
+    "portfolio_value": 5000.0,
+    "cash": 4500.0,
+    "return_pct": 0.0,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:15:46.701817-04:00",
+    "portfolio_value": 4999.15393971804,
+    "cash": 4500.0,
+    "return_pct": -0.01692120563919161,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:21:04.218355-04:00",
+    "portfolio_value": 4999.930312194418,
+    "cash": 4500.0,
+    "return_pct": -0.0013937561116472352,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:26:26.068898-04:00",
+    "portfolio_value": 4999.700227337003,
+    "cash": 4500.0,
+    "return_pct": -0.00599545325994768,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:31:43.033720-04:00",
+    "portfolio_value": 5000.860123523373,
+    "cash": 4500.0,
+    "return_pct": 0.017202470467454985,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:37:09.605301-04:00",
+    "portfolio_value": 5000.600202169148,
+    "cash": 4500.0,
+    "return_pct": 0.01200404338296721,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:42:31.763623-04:00",
+    "portfolio_value": 5000.74838199831,
+    "cash": 4500.0,
+    "return_pct": 0.014967639966198475,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:47:53.094178-04:00",
+    "portfolio_value": 5001.311641906864,
+    "cash": 4500.0,
+    "return_pct": 0.026232838137275394,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:53:18.367013-04:00",
+    "portfolio_value": 5001.451630137818,
+    "cash": 4500.0,
+    "return_pct": 0.029032602756360572,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T12:58:38.773495-04:00",
+    "portfolio_value": 5001.939477627841,
+    "cash": 4500.0,
+    "return_pct": 0.0387895525568274,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:03:44.763640-04:00",
+    "portfolio_value": 5001.462379877826,
+    "cash": 4500.0,
+    "return_pct": 0.029247597556513936,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:09:01.465160-04:00",
+    "portfolio_value": 4998.246292099935,
+    "cash": 4500.0,
+    "return_pct": -0.0350741580012982,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:14:10.611293-04:00",
+    "portfolio_value": 4999.029232920168,
+    "cash": 4500.0,
+    "return_pct": -0.01941534159663206,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:19:22.068265-04:00",
+    "portfolio_value": 4999.305888590365,
+    "cash": 4500.0,
+    "return_pct": -0.013882228192705954,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:24:32.180902-04:00",
+    "portfolio_value": 4998.628854205015,
+    "cash": 4500.0,
+    "return_pct": -0.027422915899696816,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:29:38.273949-04:00",
+    "portfolio_value": 5000.3559119370475,
+    "cash": 4500.0,
+    "return_pct": 0.0071182387409498915,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:34:44.716946-04:00",
+    "portfolio_value": 5001.029741584323,
+    "cash": 4500.0,
+    "return_pct": 0.02059483168646693,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:40:13.759718-04:00",
+    "portfolio_value": 4999.66728914571,
+    "cash": 4500.0,
+    "return_pct": -0.006654217085797427,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:45:27.439014-04:00",
+    "portfolio_value": 4999.954202905305,
+    "cash": 4500.0,
+    "return_pct": -0.0009159418939088937,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:50:35.983164-04:00",
+    "portfolio_value": 4996.661508584525,
+    "cash": 4500.0,
+    "return_pct": -0.06676982830949782,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T13:55:55.859915-04:00",
+    "portfolio_value": 4995.30829837575,
+    "cash": 4500.0,
+    "return_pct": -0.09383403248499235,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T14:01:15.369555-04:00",
+    "portfolio_value": 4995.142591918675,
+    "cash": 4500.0,
+    "return_pct": -0.09714816162650095,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T14:06:31.684928-04:00",
+    "portfolio_value": 4992.93891000947,
+    "cash": 4500.0,
+    "return_pct": -0.14122179981059163,
+    "active_positions": 2
+  },
+  {
+    "timestamp": "2025-06-11T14:11:48.553965-04:00",
+    "portfolio_value": 4992.476263058617,
+    "cash": 4500.0,
+    "return_pct": -0.1504747388276519,
+    "active_positions": 2
+  }
+]
