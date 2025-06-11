@@ -106,24 +106,24 @@ class KrakenAPI:
         
         if is_private:
             # Private API call
-            nonce = str(int(1000*time.time()))
+            nonce = str(int(time.time() * 1000))
             data = data or {}
             data['nonce'] = nonce
-
-            post_data = urllib.parse.urlencode(data)
-            encoded = (nonce + post_data).encode()
+            
+            # Generate signature
+            postdata = urllib.parse.urlencode(data)
+            encoded = (str(nonce) + postdata).encode()
             message = uri_path.encode() + hashlib.sha256(encoded).digest()
-
-            signature = hmac.new(self.api_secret, message, hashlib.sha512)
-            sig_digest = base64.b64encode(signature.digest())
-
+            
+            mac = hmac.new(base64.b64decode(self.api_secret), message, hashlib.sha512)
+            sigdigest = base64.b64encode(mac.digest())
+            
             headers = {
                 'API-Key': self.api_key,
-                'API-Sign': sig_digest.decode()
+                'API-Sign': sigdigest.decode()
             }
             
             response = requests.post(url, headers=headers, data=data)
-            self.private_call_counter += 1
         else:
             # Public API call
             params = data if data else {}
