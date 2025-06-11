@@ -44,3 +44,24 @@
 2025-06-09 09:06:12,215 - ERROR - live_system - Risk violation: Daily trade limit reached: 4
 2025-06-09 09:11:33,142 - ERROR - live_system - Risk violation: Daily trade limit reached: 4
 2025-06-09 09:14:40,065 - INFO - app.trading_systems.pure_5k_system - Daily report saved to app/logs/daily_report_20250609.txt
+2025-06-11 11:10:33,043 - INFO - app.services.kraken - Kraken API initialized - Authenticated
+2025-06-11 11:10:33,044 - INFO - app.services.kraken - Supported pairs: ['XXBTZUSD', 'XETHZUSD', 'XXRPZUSD', 'SOLUSD', 'ADAUSD', 'TRXUSD', 'XXLMZUSD']
+2025-06-11 11:10:39,973 - INFO - app.trading_systems.pure_5k_system - PAPER BUY: 0.087601 ETH-USD @ $2853.8479 - Live strong momentum - STRONG_UP
+2025-06-11 11:10:40,269 - INFO - app.trading_systems.pure_5k_system - PAPER BUY: 1.499674 SOL-USD @ $166.7029 - Live strong momentum - STRONG_UP
+2025-06-11 11:10:46,697 - INFO - app.trading_systems.pure_5k_system - Portfolio: $5,000.00 | Cash: $4500.00 | Return: +0.00%
+2025-06-11 11:13:31,668 - INFO - __main__ - Starting Day 1 portfolio allocation
+2025-06-11 11:13:31,671 - INFO - __main__ - Allocated 0.00343145 BTC-USD @ $104079.2578 = $357.14
+2025-06-11 11:13:31,672 - INFO - __main__ - Allocated 148.52713967 XRP-USD @ $2.4046 = $357.14
+2025-06-11 11:13:31,673 - INFO - __main__ - Allocated 0.14167864 ETH-USD @ $2520.7954 = $357.14
+2025-06-11 11:13:31,674 - INFO - __main__ - Allocated 2.02972001 SOL-USD @ $175.9567 = $357.14
+2025-06-11 11:13:31,675 - INFO - __main__ - Allocated 1343.96768149 TRX-USD @ $0.2657 = $357.14
+2025-06-11 11:13:31,676 - INFO - __main__ - Allocated 434.95012057 ADA-USD @ $0.8211 = $357.14
+2025-06-11 11:13:31,677 - INFO - __main__ - Allocated 1142.72200956 XLM-USD @ $0.3125 = $357.14
+2025-06-11 11:13:31,678 - INFO - __main__ - Allocated 0.82518055 QQQ @ $504.9400 = $416.67
+2025-06-11 11:13:31,678 - INFO - __main__ - Allocated 3.41586052 NVDA @ $121.9800 = $416.67
+2025-06-11 11:13:31,679 - INFO - __main__ - Allocated 0.93222361 MSFT @ $446.9600 = $416.67
+2025-06-11 11:13:31,680 - INFO - __main__ - Allocated 2.64785630 GOOGL @ $157.3600 = $416.67
+2025-06-11 11:13:31,681 - INFO - __main__ - Allocated 1.30571485 TSLA @ $319.1100 = $416.67
+2025-06-11 11:13:31,682 - INFO - __main__ - Allocated 3.85481235 AMD @ $108.0900 = $416.67
+2025-06-11 11:13:31,682 - INFO - __main__ - Day 1 allocation complete: $5000.00 invested, $-0.00 cash remaining
+2025-06-11 11:16:04,219 - INFO - app.trading_systems.pure_5k_system - Portfolio: $4,999.15 | Cash: $4500.00 | Return: -0.02%

@@ -5,3 +5,7 @@
 __version__ = "1.0.0"
 __author__ = "Elite Financial AI Team"
 __description__ = "An aggressive, profit-focused AI financial advisor that helps maximize returns"
+
+"""
+Pure5K Trading System Package
+"""

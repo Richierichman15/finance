@@ -1,0 +1,48 @@
+{
+  "orders": [
+    {
+      "id": "PAPER_1",
+      "symbol": "BTC-USD",
+      "type": "market",
+      "side": "buy",
+      "amount": 0.001,
+      "price": 109796.6,
+      "status": "filled",
+      "timestamp": "2025-06-11T11:04:34.082644",
+      "filled": 0.001,
+      "fill_price": 109796.6,
+      "fill_time": "2025-06-11T11:04:34.082689"
+    },
+    {
+      "id": "PAPER_2",
+      "symbol": "ETH-USD",
+      "type": "limit",
+      "side": "buy",
+      "amount": 0.01,
+      "price": 2859.0,
+      "status": "cancelled",
+      "timestamp": "2025-06-11T11:04:36.314642",
+      "filled": 0.0
+    },
+    {
+      "id": "PAPER_3",
+      "symbol": "BTC-USD",
+      "type": "market",
+      "side": "sell",
+      "amount": 0.0005,
+      "price": 109796.6,
+      "status": "filled",
+      "timestamp": "2025-06-11T11:04:36.315478",
+      "filled": 0.0005,
+      "fill_price": 109796.6,
+      "fill_time": "2025-06-11T11:04:36.315513"
+    }
+  ],
+  "positions": {
+    "BTC-USD": {
+      "amount": 0.0005,
+      "avg_price": 109796.6
+    }
+  },
+  "order_id_counter": 4
+}

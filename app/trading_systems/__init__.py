@@ -1,7 +1,6 @@
 """
 Trading Systems Package
-======================
-Ultra-aggressive trading strategies targeting 10% returns
+Contains various trading system implementations
 """
 
 from .pure_5k_system import Pure5KLiveTradingSystem
