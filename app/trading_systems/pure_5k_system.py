@@ -80,24 +80,22 @@ class Pure5KLiveTradingSystem:
         self.crypto_symbols = [
             'XXBTZUSD',  # Bitcoin
             'XETHZUSD',  # Ethereum
-            'XXRPZUSD',  # Ripple
-            'SOLUSDC',   # Solana (using USDC pair as it has more liquidity)
-            'ADAUSDC',   # Cardano (using USDC pair as it has more liquidity)
+            'SOLUSD',    # Solana
+            'XRPUSD',    # Ripple
+            'ADAUSD',    # Cardano
             'TRXUSD',    # Tron
-            'XXLMZUSD',  # Stellar
-            'PAXGUSD'    # Pax Gold
+            'XLMUSD'     # Stellar
         ]
         
         # Symbol mapping for price data (internal format -> Kraken format)
         self.symbol_map = {
             'BTC-USD': 'XXBTZUSD',
             'ETH-USD': 'XETHZUSD',
-            'XRP-USD': 'XXRPZUSD',
-            'SOL-USD': 'SOLUSDC',
-            'ADA-USD': 'ADAUSDC',
+            'SOL-USD': 'SOLUSD',
+            'XRP-USD': 'XRPUSD',
+            'ADA-USD': 'ADAUSD',
             'TRX-USD': 'TRXUSD',
-            'XLM-USD': 'XXLMZUSD',
-            'PAXG-USD': 'PAXGUSD'
+            'XLM-USD': 'XLMUSD'
         }
         
         # EXPANDED STOCK UNIVERSE
@@ -296,41 +294,78 @@ class Pure5KLiveTradingSystem:
         return self.get_current_price_online(symbol, date)
 
     def get_current_price_online(self, symbol: str, date: str = None) -> float:
-        """Get current price with Kraken integration for crypto"""
+        """Get current price with enhanced Kraken integration for crypto"""
         # For crypto symbols, try Kraken first
-        if symbol in self.symbol_map:  # Check if we have a Kraken mapping
-            try:
-                kraken_symbol = self.symbol_map[symbol]
-                price = kraken_api.get_price(kraken_symbol)
-                if price > 0:
-                    return price
-                self.logger.debug(f"Kraken returned zero price for {symbol} ({kraken_symbol})")
-            except Exception as e:
-                self.logger.debug(f"Kraken price fetch failed for {symbol}: {e}")
+        internal_symbol = symbol
+        kraken_symbol = None
+
+        # Check if this is an internal symbol that needs mapping to Kraken format
+        if internal_symbol in self.symbol_map:
+            kraken_symbol = self.symbol_map[internal_symbol]
+        # Or if it's already a Kraken symbol
+        elif symbol in self.crypto_symbols:
+            kraken_symbol = symbol
+            internal_symbol = next((k for k, v in self.symbol_map.items() if v == symbol), symbol)
+
+        if kraken_symbol:
+            max_retries = 3
+            retry_delay = 1  # seconds
+            last_error = None
+
+            for attempt in range(max_retries):
+                try:
+                    self.logger.info(f"Fetching Kraken price for {internal_symbol} (Kraken: {kraken_symbol}) - Attempt {attempt + 1}/{max_retries}")
+                    price = kraken_api.get_price(kraken_symbol)
+                    
+                    if price > 0:
+                        self.logger.info(f"Successfully got Kraken price for {internal_symbol}: ${price:.2f}")
+                        return price
+                    else:
+                        last_error = "Zero price returned"
+                        self.logger.warning(f"Kraken returned zero price for {internal_symbol} ({kraken_symbol})")
+                
+                except Exception as e:
+                    last_error = str(e)
+                    self.logger.warning(f"Kraken price fetch failed for {internal_symbol} ({kraken_symbol}) - Attempt {attempt + 1}: {e}")
+                    
+                    if "Unknown asset pair" in str(e):
+                        # No point retrying if the pair doesn't exist
+                        break
+                    
+                    if attempt < max_retries - 1:  # Don't sleep on last attempt
+                        time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+            
+            if last_error:
+                self.logger.error(f"All Kraken attempts failed for {internal_symbol} ({kraken_symbol}): {last_error}")
         
         # Fallback to yfinance for stocks or if Kraken fails
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = yf.Ticker(internal_symbol)
             
             if date:
                 target_date = pd.to_datetime(date).date()
                 end_date = target_date + timedelta(days=1)
                 hist = ticker.history(start=target_date, end=end_date, interval='1d')
                 if not hist.empty:
-                    return float(hist['Close'].iloc[0])
+                    price = float(hist['Close'].iloc[0])
+                    self.logger.info(f"Got historical yfinance price for {internal_symbol}: ${price:.2f}")
+                    return price
             
             # Try recent data with fallbacks
             for period in ['1d', '5d', '1mo']:
                 try:
                     hist = ticker.history(period=period)
                     if not hist.empty:
-                        return float(hist['Close'].iloc[-1])
+                        price = float(hist['Close'].iloc[-1])
+                        self.logger.info(f"Got yfinance price for {internal_symbol} (period: {period}): ${price:.2f}")
+                        return price
                 except Exception as period_error:
+                    self.logger.debug(f"yfinance period {period} failed for {internal_symbol}: {period_error}")
                     continue
-                    
+                
         except Exception as e:
             if symbol not in ['XEG']:  # Add other known problematic symbols here
-                self.logger.debug(f"yfinance failed for {symbol}: {e}")
+                self.logger.error(f"yfinance failed for {internal_symbol}: {e}")
         
         return 0.0
 
