@@ -89,13 +89,13 @@ class Pure5KLiveTradingSystem:
         
         # Symbol mapping for price data (internal format -> external format)
         self.symbol_map = {
-            'BTC-USD': 'BTC-USD',
-            'ETH-USD': 'ETH-USD',
-            'SOL-USD': 'SOL-USD',
-            'XRP-USD': 'XRP-USD',
-            'ADA-USD': 'ADA-USD',
-            'TRX-USD': 'TRX-USD',
-            'XLM-USD': 'XLM-USD'
+            'BTC-USD': 'XXBTZUSD',
+            'ETH-USD': 'XETHZUSD',
+            'SOL-USD': 'SOLUSD',
+            'XRP-USD': 'XXRPZUSD',
+            'ADA-USD': 'ADAUSD',
+            'TRX-USD': 'TRXUSD',
+            'XLM-USD': 'XXLMZUSD'
         }
         
         # EXPANDED STOCK UNIVERSE
@@ -299,15 +299,13 @@ class Pure5KLiveTradingSystem:
         internal_symbol = symbol
         kraken_symbol = None
 
-        # Check if this is an internal symbol that needs mapping to Kraken format
-        if internal_symbol in self.symbol_map:
-            kraken_symbol = self.symbol_map[internal_symbol]
-        # Or if it's already a Kraken symbol
-        elif symbol in self.crypto_symbols:
-            kraken_symbol = symbol
-            internal_symbol = next((k for k, v in self.symbol_map.items() if v == symbol), symbol)
+        # Check if this is a crypto symbol that needs mapping to Kraken format
+        if internal_symbol in self.crypto_symbols:
+            # Map to Kraken format using the symbol_map
+            kraken_symbol = self.symbol_map.get(internal_symbol, internal_symbol)
+            self.logger.info(f"Mapping {internal_symbol} to Kraken format: {kraken_symbol}")
 
-        if kraken_symbol:
+        if kraken_symbol and kraken_symbol in ['XXBTZUSD', 'XETHZUSD', 'XXRPZUSD', 'SOLUSD', 'ADAUSD', 'TRXUSD', 'XXLMZUSD']:
             max_retries = 3
             retry_delay = 1  # seconds
             last_error = None
@@ -1438,8 +1436,8 @@ def main():
         # Create pure $5K trading system
         system = Pure5KLiveTradingSystem(initial_balance=5000.0)
         
-        # Run 30-day backtest
-        results = system.run_pure_5k_backtest(days=30)
+        # Run 3-day backtest
+        results = system.run_pure_5k_backtest(days=3)
         
         # Save results
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
