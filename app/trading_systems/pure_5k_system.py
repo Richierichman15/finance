@@ -76,26 +76,26 @@ class Pure5KLiveTradingSystem:
         # Volatility tracking for dynamic stops
         self.volatility_metrics = {}  # Store volatility data per symbol
         
-        # EXPANDED CRYPTO UNIVERSE with Kraken symbols
+        # EXPANDED CRYPTO UNIVERSE with correct Kraken symbols
         self.crypto_symbols = [
-            'XXBTZUSD',  # Bitcoin
-            'XETHZUSD',  # Ethereum
-            'SOLUSD',    # Solana
-            'XRPUSD',    # Ripple
-            'ADAUSD',    # Cardano
-            'TRXUSD',    # Tron
-            'XLMUSD'     # Stellar
+            'BTC-USD',  # Bitcoin - Working format
+            'ETH-USD',  # Ethereum - Working format
+            'SOL-USD',  # Solana - Working format
+            'XRP-USD',  # Ripple - Working format
+            'ADA-USD',  # Cardano - Working format
+            'TRX-USD',  # Tron - Working format
+            'XLM-USD'   # Stellar - Working format
         ]
         
-        # Symbol mapping for price data (internal format -> Kraken format)
+        # Symbol mapping for price data (internal format -> external format)
         self.symbol_map = {
-            'BTC-USD': 'XXBTZUSD',
-            'ETH-USD': 'XETHZUSD',
-            'SOL-USD': 'SOLUSD',
-            'XRP-USD': 'XRPUSD',
-            'ADA-USD': 'ADAUSD',
-            'TRX-USD': 'TRXUSD',
-            'XLM-USD': 'XLMUSD'
+            'BTC-USD': 'BTC-USD',
+            'ETH-USD': 'ETH-USD',
+            'SOL-USD': 'SOL-USD',
+            'XRP-USD': 'XRP-USD',
+            'ADA-USD': 'ADA-USD',
+            'TRX-USD': 'TRX-USD',
+            'XLM-USD': 'XLM-USD'
         }
         
         # EXPANDED STOCK UNIVERSE
@@ -659,7 +659,7 @@ class Pure5KLiveTradingSystem:
         self.cash -= total_invested
         print("\n📊 ALLOCATION SUMMARY:")
         print(f"   💰 Total Investment: ${total_invested:.2f} ({(total_invested/self.initial_balance)*100:.1f}% of portfolio)")
-        print(f"   💵 Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
+        print(f"   �� Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
         print(f"   📈 Number of Positions: {len([p for p in self.positions.values() if p['shares'] > 0])}")
         
         if failed_symbols:

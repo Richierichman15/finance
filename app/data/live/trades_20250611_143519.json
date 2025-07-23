@@ -1,0 +1,24 @@
+[
+  {
+    "date": "2025-06-11",
+    "symbol": "ETH-USD",
+    "action": "BUY",
+    "shares": 0.08760102455557665,
+    "price": 2853.847900390625,
+    "amount": 250.00000000000003,
+    "strategy": "Live_Paper_Trading",
+    "reason": "Live strong momentum - STRONG_UP",
+    "category": "crypto"
+  },
+  {
+    "date": "2025-06-11",
+    "symbol": "SOL-USD",
+    "action": "BUY",
+    "shares": 1.4996735939919326,
+    "price": 166.70294189453125,
+    "amount": 249.99999999999997,
+    "strategy": "Live_Paper_Trading",
+    "reason": "Live strong momentum - STRONG_UP",
+    "category": "crypto"
+  }
+]
