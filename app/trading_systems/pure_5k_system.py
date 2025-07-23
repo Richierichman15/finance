@@ -68,7 +68,7 @@ class Pure5KLiveTradingSystem:
         # Enhanced risk management
         self.last_trade_date = {}
         self.trailing_stops = {}
-        self.cooldown_periods = 2  # Reduced from 3 to 2 days
+        self.cooldown_periods = 1  # Reduced from 2 to 1 day - allow more frequent trading
         self.daily_trade_count = 0
         self.daily_start_value = self.initial_balance
         self.emergency_stop = False
@@ -98,42 +98,37 @@ class Pure5KLiveTradingSystem:
             'XLM-USD': 'XXLMZUSD'
         }
         
-        # EXPANDED STOCK UNIVERSE
+        # EXPANDED STOCK UNIVERSE - FOCUSED ON TOP PERFORMERS
         self.energy_stocks = [
             'PLUG',    # Plug Power - Strong performer
             'ENPH',    # Enphase Energy - Solar
             'SEDG',    # SolarEdge - Solar tech
             'NEE',     # NextEra Energy - Renewables
-            'BE',      # Bloom Energy - Fuel cells
-            'FCEL',    # FuelCell Energy
-            'RUN',     # Sunrun - Solar
-            'NOVA',    # Sunnova - Solar
-            'STEM'     # Stem Inc - Clean energy
+            'RUN'      # Sunrun - Solar (reduced from 9 to 5)
         ]
         
         self.tech_stocks = [
-            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD', 'TSM', 'PLTR', 'TTWO'  # Removed CRCL due to poor performance
+            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD', 'PLTR'  # Reduced from 9 to 7 strongest
         ]
         
         self.etf_symbols = [
             'TAN',     # Solar ETF
-            'ICLN',    # Clean Energy ETF
-            'QCLN'     # Clean Tech ETF
+            'ICLN'     # Clean Energy ETF (reduced from 3 to 2)
         ]
         
         self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
         
-        # Portfolio allocation
-        self.crypto_allocation = 0.30  # Reduced from 0.50 due to API issues and volatility
-        self.energy_allocation = 0.30  # Added significant allocation due to strong performance
-        self.tech_allocation = 0.35    # Slightly reduced but still significant due to consistent returns
-        self.etf_allocation = 0.05     # Small allocation for stability
+        # Portfolio allocation - MORE AGGRESSIVE
+        self.crypto_allocation = 0.40  # Increased from 0.30
+        self.energy_allocation = 0.35  # Increased from 0.30
+        self.tech_allocation = 0.20    # Reduced from 0.35 to focus on fewer, stronger positions
+        self.etf_allocation = 0.05     # Keep small for stability
         
         # Update allocation explanation
         print(f"\n💰 PORTFOLIO ALLOCATION STRATEGY:")
         print(f"⚡ Energy: {self.energy_allocation:.0%} - Strong momentum in clean energy")
-        print(f"💻 Tech: {self.tech_allocation:.0%} - Consistent performance across sector")
-        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - Reduced for volatility management")
+        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - Increased for higher volatility returns")
+        print(f"💻 Tech: {self.tech_allocation:.0%} - Focused on strongest performers")
         print(f"📈 ETFs: {self.etf_allocation:.0%} - Added for stability")
         
         # Market timezone handling
@@ -144,12 +139,12 @@ class Pure5KLiveTradingSystem:
         os.makedirs('app/logs', exist_ok=True)
         os.makedirs('app/data/live', exist_ok=True)
         
-        # Enhanced cash management - more aggressive reinvestment
+        # Enhanced cash management - MORE AGGRESSIVE
         self.cash_management = {
-            'target_cash_ratio': 0.15,  # Keep exactly 15% in cash
-            'min_cash_ratio': 0.15,     # Never go below 15%
-            'max_cash_ratio': 0.20,     # Trigger reinvestment above 20%
-            'reinvestment_threshold': 0.16  # Start reinvesting at 16%
+            'target_cash_ratio': 0.10,  # Reduced from 0.15 - keep only 10% cash
+            'min_cash_ratio': 0.05,     # Reduced from 0.15 - allow down to 5%
+            'max_cash_ratio': 0.15,     # Reduced from 0.20 - trigger reinvestment at 15%
+            'reinvestment_threshold': 0.11  # Reduced from 0.16 - start reinvesting at 11%
         }
         
         print(f"🚀 PURE $5K LIVE TRADING SYSTEM - {'PAPER' if paper_trading else 'LIVE'} MODE")
@@ -439,29 +434,35 @@ class Pure5KLiveTradingSystem:
                                 else:
                                     momentum_12 = 0
                                 
-                                # Ultra-aggressive signal thresholds
+                                # Ultra-aggressive signal thresholds - MORE SENSITIVE
                                 if trend_bias in ["STRONG_BULLISH", "BULLISH"]:
-                                    if momentum_3 > 0.02:  # New ultra-short term trigger
+                                    if momentum_3 > 0.015:  # Reduced from 0.02 - more sensitive
                                         signals[symbol] = "EXPLOSIVE_UP"
-                                    elif momentum_6 > 0.03:  # Reduced from 0.05
+                                    elif momentum_6 > 0.025:  # Reduced from 0.03
                                         signals[symbol] = "STRONG_UP"
-                                    elif momentum_12 > 0.05:  # Reduced from 0.08
+                                    elif momentum_12 > 0.04:  # Reduced from 0.05
                                         signals[symbol] = "TREND_UP"
-                                    elif momentum_3 < -0.02:  # Quicker reversal detection
+                                    elif momentum_3 < -0.015:  # Reduced from -0.02 - quicker reversal
                                         signals[symbol] = "REVERSAL_DOWN"
                                     else:
                                         signals[symbol] = "NEUTRAL"
                                 
                                 elif trend_bias in ["STRONG_BEARISH", "BEARISH"]:
-                                    if momentum_3 < -0.02:  # More sensitive to downside
+                                    if momentum_3 < -0.015:  # Reduced from -0.02 - more sensitive
                                         signals[symbol] = "STRONG_DOWN"
-                                    elif momentum_3 > 0.02:  # Quick counter-trend opportunity
+                                    elif momentum_3 > 0.015:  # Reduced from 0.02 - quicker counter-trend
                                         signals[symbol] = "COUNTER_TREND_UP"
                                     else:
                                         signals[symbol] = "BEARISH_HOLD"
                                 
                                 else:
-                                    signals[symbol] = "NEUTRAL"
+                                    # Even neutral trends can trigger on strong short-term moves
+                                    if momentum_3 > 0.02:  # New trigger for neutral trends
+                                        signals[symbol] = "SHORT_TERM_UP"
+                                    elif momentum_3 < -0.02:
+                                        signals[symbol] = "SHORT_TERM_DOWN"
+                                    else:
+                                        signals[symbol] = "NEUTRAL"
                                     
                             except:
                                 signals[symbol] = "NEUTRAL"
@@ -657,7 +658,7 @@ class Pure5KLiveTradingSystem:
         self.cash -= total_invested
         print("\n📊 ALLOCATION SUMMARY:")
         print(f"   💰 Total Investment: ${total_invested:.2f} ({(total_invested/self.initial_balance)*100:.1f}% of portfolio)")
-        print(f"   �� Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
+        print(f"    Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
         print(f"   📈 Number of Positions: {len([p for p in self.positions.values() if p['shares'] > 0])}")
         
         if failed_symbols:
@@ -842,9 +843,9 @@ class Pure5KLiveTradingSystem:
                     continue
                 
                 # EXPLOSIVE UP signals - buy aggressively
-                if signal in ["EXPLOSIVE_UP", "COUNTER_TREND_UP"] and self.cash > 250:
+                if signal in ["EXPLOSIVE_UP", "COUNTER_TREND_UP", "SHORT_TERM_UP"] and self.cash > 200:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
-                    buy_amount = min(400 if category == 'crypto' else 300, self.cash * 0.4)
+                    buy_amount = min(500 if category == 'crypto' else 400, self.cash * 0.5)  # Increased from 400/300
                     shares = buy_amount / current_price
                     
                     self._add_to_position(symbol, shares, current_price, category)
@@ -859,9 +860,9 @@ class Pure5KLiveTradingSystem:
                     print(f"  💥 {signal_type.upper()} BUY: {shares:.6f} {symbol} @ ${current_price:.4f}")
                 
                 # STRONG UP and TREND UP signals - buy moderately
-                elif signal in ["STRONG_UP", "TREND_UP"] and self.cash > 200:
+                elif signal in ["STRONG_UP", "TREND_UP"] and self.cash > 150:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
-                    buy_amount = min(250 if category == 'crypto' else 200, self.cash * 0.3)
+                    buy_amount = min(350 if category == 'crypto' else 300, self.cash * 0.4)  # Increased from 250/200
                     shares = buy_amount / current_price
                     
                     self._add_to_position(symbol, shares, current_price, category)
@@ -874,11 +875,11 @@ class Pure5KLiveTradingSystem:
                     
                     print(f"  🚀 TREND BUY: {shares:.6f} {symbol} @ ${current_price:.4f}")
                 
-                # Handle defensive sells and reversals
-                elif signal in ["REVERSAL_DOWN", "STRONG_DOWN"] and symbol in self.positions:
+                # Handle defensive sells and reversals - MORE AGGRESSIVE
+                elif signal in ["REVERSAL_DOWN", "STRONG_DOWN", "SHORT_TERM_DOWN"] and symbol in self.positions:
                     if self.positions[symbol]['shares'] > 0:
                         # More aggressive selling on strong down signals
-                        sell_ratio = 0.6 if signal == "STRONG_DOWN" else 0.4
+                        sell_ratio = 0.8 if signal == "STRONG_DOWN" else 0.6 if signal == "REVERSAL_DOWN" else 0.4  # Increased ratios
                         shares_to_sell = self.positions[symbol]['shares'] * sell_ratio
                         sell_amount = shares_to_sell * current_price
                         position_return = self.calculate_position_return(symbol, current_price)
@@ -1436,8 +1437,8 @@ def main():
         # Create pure $5K trading system
         system = Pure5KLiveTradingSystem(initial_balance=5000.0)
         
-        # Run 3-day backtest
-        results = system.run_pure_5k_backtest(days=3)
+        # Run 30-day backtest
+        results = system.run_pure_5k_backtest(days=30)
         
         # Save results
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
