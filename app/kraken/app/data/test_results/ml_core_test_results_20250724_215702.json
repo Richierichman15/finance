@@ -1,0 +1,204 @@
+{
+  "test_suite": "ML Core Functionality",
+  "timestamp": "2025-07-24T21:57:02.698830",
+  "passed_tests": 9,
+  "total_tests": 9,
+  "success_rate": 1.0,
+  "test_data": [
+    {
+      "test_type": "comprehensive_analysis",
+      "timestamp": "2025-07-24T21:57:02.698812",
+      "analysis": {
+        "timestamp": "2025-07-24T21:57:02.651484",
+        "portfolio_overview": {
+          "total_value": 45500,
+          "total_assets": 6,
+          "largest_position": {
+            "symbol": "BTC/USD",
+            "percentage": 54.94505494505495
+          },
+          "cash_percentage": 0.0,
+          "crypto_percentage": 100.0,
+          "diversification_score": 58.47119913053979
+        },
+        "multi_timeframe_analysis": {
+          "7d": {
+            "return": 0.6780331784748128,
+            "volatility": 34.221996055562244,
+            "sharpe_ratio": 1.1180702898724573,
+            "max_drawdown": -4.527011304693495,
+            "win_rate": 57.14285714285714,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          },
+          "30d": {
+            "return": -10.84148307735836,
+            "volatility": 40.399517305855866,
+            "sharpe_ratio": -3.3044878303941254,
+            "max_drawdown": -16.308418494124744,
+            "win_rate": 36.666666666666664,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          },
+          "90d": {
+            "return": -30.474194860624394,
+            "volatility": 41.53546159861547,
+            "sharpe_ratio": -3.3846500941416107,
+            "max_drawdown": -33.97853947015851,
+            "win_rate": 40.0,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          },
+          "1y": {
+            "return": 8.29717397023726,
+            "volatility": 39.67850488332669,
+            "sharpe_ratio": 0.34903146525642814,
+            "max_drawdown": -46.139585061337854,
+            "win_rate": 50.68493150684932,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          }
+        },
+        "risk_metrics": {
+          "sharpe_ratio": {
+            "30d": -3.3044878303941254,
+            "90d": -3.3846500941416107,
+            "1y": 0.34903146525642814
+          },
+          "sortino_ratio": {
+            "30d": -6.796813201949937,
+            "90d": -6.166618337578492,
+            "1y": 0.5502448398049625
+          },
+          "var_95": -2.563331728179184,
+          "var_99": -4.226428123440784,
+          "expected_shortfall": -3.763830825170267,
+          "volatility_30d": 40.399517305855866,
+          "volatility_90d": 41.53546159861547,
+          "volatility_1y": 39.67850488332669,
+          "correlation_with_btc": 0.3126181584516945,
+          "correlation_with_eth": 0.2480797885624252
+        },
+        "performance_metrics": {
+          "total_return_1y": 8.29717397023726,
+          "annualized_return": 8.27359116751396,
+          "monthly_returns": [
+            5.1974537697342615,
+            19.113099563619862,
+            34.03219955754588,
+            25.532395420478828,
+            -16.357832693468044,
+            -8.668268758076191,
+            0.5350408741405799,
+            5.157545652762785,
+            -14.86256758969413,
+            -10.37130670954739,
+            -6.164607070684203,
+            -1.917520477488155
+          ],
+          "rolling_returns": {
+            "mean": 12.4407869059576,
+            "std": 37.79106441430311,
+            "max": 100.3359379509122,
+            "min": -37.39943230366681
+          },
+          "alpha_vs_btc": 21.96929565011566,
+          "alpha_vs_eth": 36.53818840025396,
+          "information_ratio_btc": 0.29547243320944383,
+          "information_ratio_eth": 0.2455670383300002,
+          "calmar_ratio": 0.1793165490438431,
+          "sterling_ratio": 0.42370134068937315
+        },
+        "beta_analysis": {
+          "beta_btc": {
+            "30d": 0.2246960896257809,
+            "90d": 0.24125548068342198,
+            "1y": 0.2979922395009296
+          },
+          "beta_eth": {
+            "30d": 0.14230245953195778,
+            "90d": 0.1336902680902439,
+            "1y": 0.09316209847109197
+          },
+          "beta_interpretation": {
+            "btc": "Low Beta (Less Volatile than BTC)",
+            "eth": "Market Neutral"
+          },
+          "systematic_risk": 9.773011299372875,
+          "idiosyncratic_risk": 90.22698870062712
+        },
+        "sector_analysis": {
+          "sector_allocation": {
+            "Store of Value": 54.94505494505495,
+            "Smart Contract Platform": 39.56043956043956,
+            "Oracle": 2.197802197802198,
+            "DEX": 3.296703296703297
+          },
+          "sector_diversification_score": 54.00313971742543,
+          "largest_sector": {
+            "name": "Store of Value",
+            "percentage": 54.94505494505495
+          },
+          "sector_concentration_risk": "MEDIUM",
+          "recommended_rebalancing": [
+            "REDUCE_STORE OF VALUE: Current 54.9%, target ~30%",
+            "REDUCE_SMART CONTRACT PLATFORM: Current 39.6%, target ~25%",
+            "INCREASE_ORACLE: Current 2.2%, target ~5%"
+          ]
+        },
+        "drawdown_analysis": {
+          "current_drawdown": -43.28073502616998,
+          "max_drawdown_1y": -46.139585061337854,
+          "max_drawdown_duration": 215,
+          "avg_drawdown": -19.52694120356714,
+          "drawdown_frequency": 85.51912568306011,
+          "recovery_time_avg": 26.083333333333332,
+          "underwater_periods": [
+            64,
+            15,
+            3,
+            4,
+            3,
+            1,
+            2,
+            1,
+            1,
+            2,
+            2,
+            215
+          ],
+          "drawdown_severity": "HIGH"
+        },
+        "recommendations": [
+          "IMPROVE_RISK_ADJUSTED_RETURNS: Consider reducing position sizes or adding defensive assets",
+          "CURRENT_DRAWDOWN_HIGH: Portfolio is in significant drawdown, consider risk management measures",
+          "IMPROVE_DOWNSIDE_PROTECTION: Historical max drawdown is severe, implement better risk controls"
+        ]
+      }
+    }
+  ]
+}

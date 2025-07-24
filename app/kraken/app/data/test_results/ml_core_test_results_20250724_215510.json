@@ -1,0 +1,171 @@
+{
+  "test_suite": "ML Core Functionality",
+  "timestamp": "2025-07-24T21:55:10.395711",
+  "passed_tests": 7,
+  "total_tests": 9,
+  "success_rate": 0.7777777777777778,
+  "test_data": [
+    {
+      "test_type": "comprehensive_analysis",
+      "timestamp": "2025-07-24T21:55:10.395694",
+      "analysis": {
+        "timestamp": "2025-07-24T21:55:10.382328",
+        "portfolio_overview": {
+          "total_value": 45500,
+          "total_assets": 6,
+          "largest_position": {
+            "symbol": "BTC/USD",
+            "percentage": 54.94505494505495
+          },
+          "cash_percentage": 0.0,
+          "crypto_percentage": 100.0,
+          "diversification_score": 58.47119913053979
+        },
+        "multi_timeframe_analysis": {
+          "7d": {
+            "return": 0.0,
+            "volatility": 0.0,
+            "sharpe_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          },
+          "30d": {
+            "return": 0.0,
+            "volatility": 0.0,
+            "sharpe_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          },
+          "90d": {
+            "return": 0.0,
+            "volatility": 0.0,
+            "sharpe_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          },
+          "1y": {
+            "return": 0.0,
+            "volatility": 0.0,
+            "sharpe_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "best_performer": {
+              "symbol": "",
+              "return": 0.0
+            },
+            "worst_performer": {
+              "symbol": "",
+              "return": 0.0
+            }
+          }
+        },
+        "risk_metrics": {
+          "sharpe_ratio": {
+            "30d": 0.0,
+            "90d": 0.0,
+            "1y": 0.0
+          },
+          "sortino_ratio": {
+            "30d": 0.0,
+            "90d": 0.0,
+            "1y": 0.0
+          },
+          "var_95": 0.0,
+          "var_99": 0.0,
+          "expected_shortfall": 0.0,
+          "volatility_30d": 0.0,
+          "volatility_90d": 0.0,
+          "volatility_1y": 0.0,
+          "correlation_with_btc": 0.0,
+          "correlation_with_eth": 0.0
+        },
+        "performance_metrics": {
+          "total_return_1y": 0.0,
+          "annualized_return": 0.0,
+          "monthly_returns": [],
+          "rolling_returns": {},
+          "alpha_vs_btc": 0.0,
+          "alpha_vs_eth": 0.0,
+          "information_ratio_btc": 0.0,
+          "information_ratio_eth": 0.0,
+          "calmar_ratio": 0.0,
+          "sterling_ratio": 0.0
+        },
+        "beta_analysis": {
+          "beta_btc": {
+            "30d": 0.0,
+            "90d": 0.0,
+            "1y": 0.0
+          },
+          "beta_eth": {
+            "30d": 0.0,
+            "90d": 0.0,
+            "1y": 0.0
+          },
+          "beta_interpretation": {
+            "btc": "Market Neutral",
+            "eth": "Market Neutral"
+          },
+          "systematic_risk": 0.0,
+          "idiosyncratic_risk": 0.0
+        },
+        "sector_analysis": {
+          "sector_allocation": {
+            "Store of Value": 54.94505494505495,
+            "Smart Contract Platform": 39.56043956043956,
+            "Oracle": 2.197802197802198,
+            "DEX": 3.296703296703297
+          },
+          "sector_diversification_score": 54.00313971742543,
+          "largest_sector": {
+            "name": "Store of Value",
+            "percentage": 54.94505494505495
+          },
+          "sector_concentration_risk": "MEDIUM",
+          "recommended_rebalancing": [
+            "REDUCE_STORE OF VALUE: Current 54.9%, target ~30%",
+            "REDUCE_SMART CONTRACT PLATFORM: Current 39.6%, target ~25%",
+            "INCREASE_ORACLE: Current 2.2%, target ~5%"
+          ]
+        },
+        "drawdown_analysis": {
+          "current_drawdown": 0.0,
+          "max_drawdown_1y": 0.0,
+          "max_drawdown_duration": 0,
+          "avg_drawdown": 0.0,
+          "drawdown_frequency": 0.0,
+          "recovery_time_avg": 0.0,
+          "underwater_periods": [],
+          "drawdown_severity": "LOW"
+        },
+        "recommendations": [
+          "IMPROVE_RISK_ADJUSTED_RETURNS: Consider reducing position sizes or adding defensive assets"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "test_suite": "AI Sentiment Analysis",
+  "timestamp": "2025-07-24T21:53:46.025884",
+  "passed_tests": 5,
+  "total_tests": 6,
+  "success_rate": 0.8333333333333334,
+  "test_data": [
+    {
+      "symbol": "BTC/USD",
+      "sentiment_data": {
+        "symbol": "BTC/USD",
+        "timestamp": "2025-07-24T21:53:46.021547",
+        "sources": {
+          "reddit": {
+            "score": -0.526866256572347,
+            "volume": 594,
+            "trending": "False",
+            "top_mentions": "r/cryptocurrency, r/btc/usd"
+          },
+          "twitter": {
+            "score": -0.21514422461322313,
+            "volume": 1556,
+            "trending": "False",
+            "influencer_sentiment": 0.06526416389385825
+          },
+          "news": {
+            "score": -0.6394022975656848,
+            "article_count": 41,
+            "headline_sentiment": -0.3816260871432111,
+            "source_credibility": 0.5021073916224568
+          },
+          "fear_greed": {
+            "index": 49,
+            "sentiment": "Neutral",
+            "score": 0.0,
+            "last_update": "2025-07-24T21:53:46.021735"
+          }
+        },
+        "aggregated_score": -0.4604709262504183,
+        "confidence": 0.75,
+        "signals": [
+          "SELL_SENTIMENT"
+        ]
+      },
+      "timestamp": "2025-07-24T21:53:46.021782"
+    },
+    {
+      "symbol": "ETH/USD",
+      "sentiment_data": {
+        "symbol": "ETH/USD",
+        "timestamp": "2025-07-24T21:53:46.021790",
+        "sources": {
+          "reddit": {
+            "score": 0.18601215486644618,
+            "volume": 349,
+            "trending": "False",
+            "top_mentions": "r/cryptocurrency, r/eth/usd"
+          },
+          "twitter": {
+            "score": 0.7671004624882811,
+            "volume": 4751,
+            "trending": "True",
+            "influencer_sentiment": -0.8160513560980174
+          },
+          "news": {
+            "score": 0.44746991359005217,
+            "article_count": 17,
+            "headline_sentiment": -0.39658618428923265,
+            "source_credibility": 0.9789952967461077
+          },
+          "fear_greed": {
+            "index": 5,
+            "sentiment": "Extreme Fear",
+            "score": -0.8,
+            "last_update": "2025-07-24T21:53:46.021838"
+          }
+        },
+        "aggregated_score": 0.15014563273619486,
+        "confidence": 1.0,
+        "signals": [
+          "TRENDING_MOMENTUM"
+        ]
+      },
+      "timestamp": "2025-07-24T21:53:46.021877"
+    },
+    {
+      "symbol": "ADA/USD",
+      "sentiment_data": {
+        "symbol": "ADA/USD",
+        "timestamp": "2025-07-24T21:53:46.021881",
+        "sources": {
+          "reddit": {
+            "score": 0.051149535412453595,
+            "volume": 221,
+            "trending": "False",
+            "top_mentions": "r/cryptocurrency, r/ada/usd"
+          },
+          "twitter": {
+            "score": 0.3769307595017577,
+            "volume": 4924,
+            "trending": "True",
+            "influencer_sentiment": -0.0424720556003817
+          },
+          "news": {
+            "score": 0.23825818261542464,
+            "article_count": 20,
+            "headline_sentiment": 0.6208470476993195,
+            "source_credibility": 0.6322596136798161
+          },
+          "fear_greed": {
+            "index": 71,
+            "sentiment": "Greed",
+            "score": 0.4,
+            "last_update": "2025-07-24T21:53:46.021916"
+          }
+        },
+        "aggregated_score": 0.26658461938240896,
+        "confidence": 1.0,
+        "signals": [
+          "TRENDING_MOMENTUM"
+        ]
+      },
+      "timestamp": "2025-07-24T21:53:46.021934"
+    },
+    {
+      "symbol": "SOL/USD",
+      "sentiment_data": {
+        "symbol": "SOL/USD",
+        "timestamp": "2025-07-24T21:53:46.021938",
+        "sources": {
+          "reddit": {
+            "score": 0.4576464256040016,
+            "volume": 149,
+            "trending": "False",
+            "top_mentions": "r/cryptocurrency, r/sol/usd"
+          },
+          "twitter": {
+            "score": 0.052026258004010506,
+            "volume": 4088,
+            "trending": "False",
+            "influencer_sentiment": -0.622800368368239
+          },
+          "news": {
+            "score": -0.44803672936786487,
+            "article_count": 14,
+            "headline_sentiment": -0.25308658665292083,
+            "source_credibility": 0.5194767875460609
+          },
+          "fear_greed": {
+            "index": 67,
+            "sentiment": "Greed",
+            "score": 0.4,
+            "last_update": "2025-07-24T21:53:46.021965"
+          }
+        },
+        "aggregated_score": 0.11540898856003681,
+        "confidence": 1.0,
+        "signals": []
+      },
+      "timestamp": "2025-07-24T21:53:46.021983"
+    }
+  ]
+}
