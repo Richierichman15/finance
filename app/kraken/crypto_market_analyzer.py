@@ -15,6 +15,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import yfinance as yf
 from typing import Dict, List, Tuple, Optional
+import requests
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -56,6 +57,11 @@ class CryptoMarketAnalyzer:
         self.analysis_results = {}
         self.analysis_timestamp = datetime.now()
         
+        # Kraken symbol mappings (will be dynamically populated)
+        self.kraken_symbol_cache = {}
+        self.kraken_assets = {}
+        self.kraken_pairs = {}
+        
         # Quantitative scoring weights
         self.scoring_weights = {
             'momentum': 0.25,           # Price momentum
@@ -71,6 +77,189 @@ class CryptoMarketAnalyzer:
         print(f"📊 Analyzing {len(self.crypto_universe)} cryptocurrencies")
         print("🔬 Mathematical models: Momentum, Sharpe, RSI, Volume, Relative Strength")
 
+    async def _initialize_kraken_mappings(self):
+        """Initialize Kraken symbol mappings using their public API"""
+        try:
+            import requests
+            
+            print("📡 Fetching Kraken asset and pair mappings...")
+            
+            # Fetch available assets
+            try:
+                assets_response = requests.get('https://api.kraken.com/0/public/Assets', timeout=10)
+                if assets_response.status_code == 200:
+                    assets_data = assets_response.json()
+                    if 'result' in assets_data:
+                        self.kraken_assets = assets_data['result']
+                        print(f"✅ Loaded {len(self.kraken_assets)} Kraken assets")
+            except Exception as e:
+                print(f"⚠️  Could not fetch Kraken assets: {e}")
+            
+            # Fetch available trading pairs
+            try:
+                pairs_response = requests.get('https://api.kraken.com/0/public/AssetPairs', timeout=10)
+                if pairs_response.status_code == 200:
+                    pairs_data = pairs_response.json()
+                    if 'result' in pairs_data:
+                        self.kraken_pairs = pairs_data['result']
+                        print(f"✅ Loaded {len(self.kraken_pairs)} Kraken trading pairs")
+                        
+                        # Build symbol mapping cache
+                        self._build_symbol_mapping_cache()
+            except Exception as e:
+                print(f"⚠️  Could not fetch Kraken pairs: {e}")
+                
+        except Exception as e:
+            print(f"⚠️  Kraken API initialization failed: {e}")
+            # Fall back to hardcoded mappings
+            self._setup_fallback_mappings()
+    
+    def _build_symbol_mapping_cache(self):
+        """Build symbol mapping cache from Kraken API data"""
+        try:
+            print("🔧 Building Kraken symbol mapping cache...")
+            
+            # Common crypto symbols we want to map
+            target_cryptos = [
+                'BTC', 'ETH', 'XRP', 'ADA', 'SOL', 'DOGE', 'DOT', 'MATIC', 'SHIB', 'LTC', 'TRX',
+                'AVAX', 'LINK', 'UNI', 'AAVE', 'SUSHI', 'CRV', 'COMP', 'MKR', 'YFI', 'SNX',
+                'LRC', 'ARB', 'OP', 'PEPE', 'FLOKI', 'BONK', 'XLM', 'VET', 'FIL', 'THETA',
+                'HBAR', 'ALGO', 'XTZ', 'ICP', 'NEAR', 'FTM', 'ATOM', 'MANA', 'SAND', 'APE',
+                'LDO', 'APT', 'SUI', 'SEI', 'TIA'
+            ]
+            
+            mappings_found = 0
+            
+            for crypto in target_cryptos:
+                yf_symbol = f"{crypto}-USD"
+                kraken_pair = self._find_kraken_usd_pair(crypto)
+                
+                if kraken_pair:
+                    self.kraken_symbol_cache[yf_symbol] = kraken_pair
+                    mappings_found += 1
+                    print(f"   📊 {yf_symbol} → {kraken_pair}")
+            
+            print(f"✅ Built {mappings_found} symbol mappings")
+            
+        except Exception as e:
+            print(f"⚠️  Error building symbol cache: {e}")
+    
+    def _find_kraken_usd_pair(self, crypto_symbol: str) -> Optional[str]:
+        """Find the correct Kraken USD pair for a crypto symbol"""
+        try:
+            # Common patterns for Kraken symbols
+            possible_patterns = [
+                f"{crypto_symbol}USD",       # Direct: BTCUSD
+                f"{crypto_symbol}ZUSD",      # With Z prefix: BTCZUSD
+                f"X{crypto_symbol}USD",      # With X prefix: XBTCUSD
+                f"X{crypto_symbol}ZUSD",     # With both: XBTCZUSD
+                f"XX{crypto_symbol}USD",     # Double X: XXBTCUSD
+                f"{crypto_symbol.upper()}USD", # Uppercase
+                f"X{crypto_symbol.upper()}ZUSD",
+            ]
+            
+            # Special mappings for known Kraken symbols
+            special_mappings = {
+                'BTC': ['XXBTZUSD', 'XBTUSD', 'XXBTCZUSD'],
+                'ETH': ['XETHZUSD', 'ETHUSD', 'XETHUSDT'],
+                'XRP': ['XXRPZUSD', 'XRPUSD', 'XXRPZUSD'],
+                'DOGE': ['XXDGZUSD', 'XDGUSD', 'DOGEUSDT'],
+                'XLM': ['XXLMZUSD', 'XLMUSD'],
+                'LTC': ['XLTCZUSD', 'LTCUSD'],
+                'XTZ': ['XTZUSD', 'XTZZUSD'],
+                'DOT': ['DOTUSD', 'DOTUSDT'],
+                'ADA': ['ADAUSD', 'ADAUSDT'],
+                'SOL': ['SOLUSD', 'SOLUSDT'],
+                'LINK': ['LINKUSD', 'LINKUSDT'],
+                'UNI': ['UNIUSD', 'UNIUSDT'],
+                'AAVE': ['AAVEUSD', 'AAVEUSDT'],
+                'SUSHI': ['SUSHIUSD', 'SUSHIUSDT'],
+                'CRV': ['CRVUSD', 'CRVUSDT'],
+                'COMP': ['COMPUSD', 'COMPUSDT'],
+                'MKR': ['MKRUSD', 'MKRUSDT'],
+                'YFI': ['YFIUSD', 'YFIUSDT'],
+                'SNX': ['SNXUSD', 'SNXUSDT'],
+                'AVAX': ['AVAXUSD', 'AVAXUSDT'],
+                'MATIC': ['MATICUSD', 'MATICUSDT'],
+                'SHIB': ['SHIBUSD', 'SHIBUSDT'],
+                'TRX': ['TRXUSD', 'TRXUSDT'],
+                'ATOM': ['ATOMUSD', 'ATOMUSDT'],
+                'FIL': ['FILUSD', 'FILUSDT'],
+                'ALGO': ['ALGOUSD', 'ALGOUSDT'],
+                'VET': ['VETUSD', 'VETUSDT'],
+                'THETA': ['THETAUSD', 'THETAUSDT'],
+                'HBAR': ['HBARUSD', 'HBARUSDT'],
+                'ICP': ['ICPUSD', 'ICPUSDT'],
+                'NEAR': ['NEARUSD', 'NEARUSDT'],
+                'FTM': ['FTMUSD', 'FTMUSDT'],
+                'MANA': ['MANAUSD', 'MANAUSDT'],
+                'SAND': ['SANDUSD', 'SANDUSDT'],
+                'APE': ['APEUSD', 'APEUSDT'],
+                'LDO': ['LDOUSD', 'LDOUSDT'],
+                'LRC': ['LRCUSD', 'LRCUSDT'],
+                'BONK': ['BONKUSD', 'BONKUSDT'],
+                'FLOKI': ['FLOKIUSD', 'FLOKIUSDT'],
+                'PEPE': ['PEPEUSD', 'PEPEUSDT']
+            }
+            
+            # Try special mappings first
+            if crypto_symbol in special_mappings:
+                for candidate in special_mappings[crypto_symbol]:
+                    if candidate in self.kraken_pairs:
+                        return candidate
+            
+            # Try common patterns
+            for pattern in possible_patterns:
+                if pattern in self.kraken_pairs:
+                    return pattern
+            
+            # Search through all pairs for alternative names
+            for pair_key, pair_data in self.kraken_pairs.items():
+                if 'altname' in pair_data:
+                    altname = pair_data['altname']
+                    if altname.startswith(crypto_symbol) and altname.endswith('USD'):
+                        return pair_key
+                        
+                # Check wsname as well
+                if 'wsname' in pair_data:
+                    wsname = pair_data['wsname']
+                    if f"{crypto_symbol}/USD" in wsname:
+                        return pair_key
+            
+            return None
+            
+        except Exception as e:
+            print(f"⚠️  Error finding Kraken pair for {crypto_symbol}: {e}")
+            return None
+    
+    def _setup_fallback_mappings(self):
+        """Setup hardcoded fallback mappings if API fails"""
+        print("🔧 Setting up fallback symbol mappings...")
+        
+        self.kraken_symbol_cache = {
+            'BTC-USD': 'XXBTZUSD',
+            'ETH-USD': 'XETHZUSD', 
+            'XRP-USD': 'XXRPZUSD',
+            'ADA-USD': 'ADAUSD',
+            'SOL-USD': 'SOLUSD',
+            'DOGE-USD': 'XXDGZUSD',
+            'DOT-USD': 'DOTUSD',
+            'LTC-USD': 'XLTCZUSD',
+            'XLM-USD': 'XXLMZUSD',
+            'LINK-USD': 'LINKUSD',
+            'UNI-USD': 'UNIUSD',
+            'AAVE-USD': 'AAVEUSD',
+            'SUSHI-USD': 'SUSHIUSD',
+            'CRV-USD': 'CRVUSD',
+            'XTZ-USD': 'XTZUSD',
+            'ATOM-USD': 'ATOMUSD',
+            'AVAX-USD': 'AVAXUSD',
+            'TRX-USD': 'TRXUSD',
+            'ALGO-USD': 'ALGOUSD'
+        }
+        
+        print(f"✅ Setup {len(self.kraken_symbol_cache)} fallback mappings")
+
     async def analyze_crypto_market(self) -> Dict:
         """Main analysis function to find best crypto buy opportunities"""
         print("\n" + "="*80)
@@ -78,6 +267,10 @@ class CryptoMarketAnalyzer:
         print("="*80)
         
         try:
+            # Step 0: Ensure Kraken mappings are initialized
+            if not self.kraken_symbol_cache:
+                await self._initialize_kraken_mappings()
+            
             # Step 1: Fetch market data for all cryptos
             await self._fetch_comprehensive_crypto_data()
             
@@ -160,8 +353,22 @@ class CryptoMarketAnalyzer:
             print(f"❌ Failed symbols: {', '.join(failed_symbols[:10])}{'...' if len(failed_symbols) > 10 else ''}")
 
     def _convert_to_kraken_symbol(self, yf_symbol: str) -> Optional[str]:
-        """Convert yfinance symbol to Kraken format"""
-        symbol_map = {
+        """Convert yfinance symbol to Kraken format using dynamic mappings"""
+        # First check our dynamic cache
+        if yf_symbol in self.kraken_symbol_cache:
+            return self.kraken_symbol_cache[yf_symbol]
+        
+        # Try to find mapping on the fly
+        crypto_part = yf_symbol.replace('-USD', '')
+        kraken_pair = self._find_kraken_usd_pair(crypto_part)
+        
+        if kraken_pair:
+            # Cache the result for future use
+            self.kraken_symbol_cache[yf_symbol] = kraken_pair
+            return kraken_pair
+        
+        # Fallback to hardcoded mappings
+        fallback_map = {
             'BTC-USD': 'XBTUSD',
             'ETH-USD': 'ETHUSD',
             'XRP-USD': 'XRPUSD',
@@ -177,7 +384,7 @@ class CryptoMarketAnalyzer:
             'XLM-USD': 'XLMUSD',
             'ATOM-USD': 'ATOMUSD'
         }
-        return symbol_map.get(yf_symbol)
+        return fallback_map.get(yf_symbol)
 
     async def _calculate_quantitative_scores(self):
         """Calculate comprehensive quantitative scores for each crypto"""
