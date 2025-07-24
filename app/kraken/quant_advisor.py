@@ -84,7 +84,7 @@ class QuantitativeAdvisor:
             return {}
 
     async def _get_actual_portfolio(self) -> Dict:
-        """Get actual portfolio from Kraken"""
+        """Enhanced portfolio retrieval with better symbol mapping"""
         try:
             print("🔍 Retrieving live portfolio data from Kraken...")
             
@@ -96,6 +96,8 @@ class QuantitativeAdvisor:
             
             balance = balance_response['result']
             portfolio = {}
+            failed_assets = []
+            small_assets = []
             
             print("\n💰 CURRENT PORTFOLIO HOLDINGS:")
             print("-" * 40)
@@ -105,29 +107,49 @@ class QuantitativeAdvisor:
             for asset, amount_str in balance.items():
                 try:
                     amount = float(amount_str)
-                    if amount > 0.01:  # Only meaningful amounts
+                    if amount > 0.0001:  # Lower threshold like AI analysis
                         
-                        # Get current price
+                        # Get current price with enhanced logic
                         if asset == 'ZUSD':
                             current_price = 1.0
                             usd_value = amount
+                            symbol = 'USD'
                         else:
-                            current_price = await self._get_asset_price(asset)
+                            current_price = await self._get_enhanced_asset_price(asset)
                             usd_value = amount * current_price if current_price > 0 else 0
+                            symbol = self._convert_to_yfinance_symbol(asset)
                         
-                        if usd_value > 1:  # Only assets worth more than $1
+                        if usd_value > 0.1:  # Lower threshold for inclusion
                             portfolio[asset] = {
                                 'amount': amount,
                                 'current_price': current_price,
                                 'usd_value': usd_value,
-                                'symbol': self._convert_to_yfinance_symbol(asset)
+                                'symbol': symbol
                             }
                             total_usd_value += usd_value
                             
                             print(f"   {asset:<12} {amount:>12.6f} @ ${current_price:>8.2f} = ${usd_value:>10.2f}")
+                        else:
+                            failed_assets.append((asset, amount, symbol))
+                            print(f"   ❌ {asset}: {amount:.6f} - Price fetch failed ({symbol})")
+                    elif amount > 0:
+                        small_assets.append((asset, amount))
+                        print(f"   🔍 {asset}: {amount:.8f} - Too small (below threshold)")
                 
                 except Exception as e:
+                    print(f"   ⚠️  Error processing {asset}: {e}")
                     continue
+            
+            # Report summary
+            if failed_assets:
+                print(f"\n⚠️  ASSETS WITH FAILED PRICE FETCHING:")
+                for asset, amount, symbol in failed_assets:
+                    print(f"   {asset} ({amount:.6f}) → {symbol}")
+            
+            if small_assets:
+                print(f"\n🔍 SMALL ASSETS (below 0.0001 threshold):")
+                for asset, amount in small_assets:
+                    print(f"   {asset}: {amount:.8f}")
             
             print(f"\n💎 Total Portfolio Value: ${total_usd_value:,.2f}")
             print(f"📊 Number of Assets: {len(portfolio)}")
@@ -142,75 +164,151 @@ class QuantitativeAdvisor:
             print(f"❌ Portfolio retrieval failed: {e}")
             return {}
 
-    async def _get_asset_price(self, asset: str) -> float:
-        """Get current price for an asset"""
+    async def _get_enhanced_asset_price(self, asset: str) -> float:
+        """Enhanced asset price fetching with multiple fallbacks"""
         try:
             # Special handling for different asset types
             if asset == 'ZUSD':
                 return 1.0
             
-            # Try Kraken first for crypto
-            kraken_symbols = ['XXBT', 'XETH', 'XXRP', 'ADA', 'SOL', 'XXDG', 'XXLM']
+            # Get symbol for price fetching
+            symbol = self._convert_to_yfinance_symbol(asset)
+            if not symbol:
+                return 0.0
+            
+            # Enhanced symbol mapping for problematic assets
+            enhanced_symbol_map = {
+                'PEPE-USD': 'PEPE-USD',
+                'UNI-USD': 'UNI-USD',
+                'USD': 'USD',
+                'ZUSD': 'USD'
+            }
+            
+            # Use enhanced mapping if available
+            if symbol in enhanced_symbol_map:
+                symbol = enhanced_symbol_map[symbol]
+            
+            # Try yfinance with multiple approaches
+            try:
+                ticker = yf.Ticker(symbol)
+                
+                # Try different timeframes for better success rate
+                for period, interval in [('1d', '1m'), ('5d', '1h'), ('1mo', '1d')]:
+                    try:
+                        hist = ticker.history(period=period, interval=interval)
+                        if not hist.empty:
+                            current_price = float(hist['Close'].iloc[-1])
+                            if current_price > 0:
+                                print(f"   ✅ Price found for {asset} ({symbol}): ${current_price:.4f}")
+                                return current_price
+                    except Exception as e:
+                        continue
+                
+                # If all timeframes fail, try getting info directly
+                try:
+                    info = ticker.info
+                    if 'regularMarketPrice' in info and info['regularMarketPrice']:
+                        price = float(info['regularMarketPrice'])
+                        if price > 0:
+                            print(f"   ✅ Price found via info for {asset} ({symbol}): ${price:.4f}")
+                            return price
+                except:
+                    pass
+                    
+            except Exception as e:
+                print(f"   ⚠️  yfinance failed for {asset} ({symbol}): {e}")
+            
+            # Try Kraken API as fallback for specific assets
+            kraken_symbols = ['XXBT', 'XETH', 'XXRP', 'ADA', 'SOL', 'XXDG', 'XXLM', 'PEPE', 'UNI']
             if any(asset.startswith(symbol) for symbol in kraken_symbols):
                 try:
-                    # Map to correct Kraken format
-                    symbol_map = {
+                    # Enhanced Kraken symbol mapping
+                    kraken_map = {
                         'XXBT': 'XBTUSD',
                         'XETH': 'ETHUSD', 
                         'XXRP': 'XRPUSD',
-                        'ADA': 'ADAEUR',
-                        'SOL': 'SOLEUR',
+                        'ADA': 'ADAUSD',
+                        'SOL': 'SOLUSD',
                         'XXDG': 'DOGEUSD',
-                        'XXLM': 'XLMUSD'
+                        'XXLM': 'XLMUSD',
+                        'PEPE': 'PEPEUSD',
+                        'UNI': 'UNIUSD'
                     }
                     
-                    for prefix, kraken_pair in symbol_map.items():
+                    for prefix, kraken_pair in kraken_map.items():
                         if asset.startswith(prefix):
                             price = kraken_api.get_price(kraken_pair)
                             if price > 0:
-                                # Convert EUR to USD if needed
-                                if 'EUR' in kraken_pair:
-                                    eur_usd_rate = 1.1  # Approximate rate
-                                    price = price * eur_usd_rate
+                                print(f"   ✅ Kraken price found for {asset}: ${price:.4f}")
                                 return price
-                except:
-                    pass
+                except Exception as e:
+                    print(f"   ⚠️  Kraken API failed for {asset}: {e}")
             
-            # Fallback to yfinance
-            yf_symbol = self._convert_to_yfinance_symbol(asset)
-            if yf_symbol:
-                ticker = yf.Ticker(yf_symbol)
-                hist = ticker.history(period='1d')
-                if not hist.empty:
-                    return float(hist['Close'].iloc[-1])
+            # Special handling for USD
+            if asset == 'ZUSD' or symbol == 'USD':
+                return 1.0
             
+            print(f"   ❌ No price data found for {asset} ({symbol})")
             return 0.0
             
         except Exception as e:
+            print(f"   ⚠️  Enhanced price fetch error for {asset}: {e}")
             return 0.0
 
+    async def _get_asset_price(self, asset: str) -> float:
+        """Legacy method - now calls enhanced version"""
+        return await self._get_enhanced_asset_price(asset)
+
     def _convert_to_yfinance_symbol(self, kraken_asset: str) -> str:
-        """Convert Kraken asset to yfinance symbol"""
+        """Enhanced conversion of Kraken asset to yfinance symbol"""
+        # Enhanced symbol mapping from AI analysis
         symbol_map = {
             'XXBT': 'BTC-USD',
+            'XBT': 'BTC-USD',
+            'BTC': 'BTC-USD',
             'XETH': 'ETH-USD',
+            'ETH': 'ETH-USD', 
             'XXRP': 'XRP-USD',
+            'XRP': 'XRP-USD',
             'ADA': 'ADA-USD',
             'SOL': 'SOL-USD',
             'XXDG': 'DOGE-USD',
+            'XDG': 'DOGE-USD',
+            'DOGE': 'DOGE-USD',
+            'DOT': 'DOT-USD',
+            'MATIC': 'MATIC-USD',
+            'LINK': 'LINK-USD',
+            'UNI': 'UNI-USD',
+            'UNI.F': 'UNI-USD',  # Explicit futures mapping
+            'AVAX': 'AVAX-USD',
+            'BONK': 'BONK-USD',
+            'FLOKI': 'FLOKI-USD',
+            'PEPE': 'PEPE-USD',
+            'PEPE.F': 'PEPE-USD',  # Explicit futures mapping
+            'XTZ': 'XTZ-USD',
+            'USDG': 'USDG-USD',
             'XXLM': 'XLM-USD',
-            'ZUSD': None  # USD cash
+            'ZUSD': 'USD'  # USD cash
         }
         
-        for kraken_prefix, yf_symbol in symbol_map.items():
-            if kraken_asset.startswith(kraken_prefix):
-                return yf_symbol
+        # Handle .F suffix (futures)
+        if kraken_asset.endswith('.F'):
+            base_asset = kraken_asset.replace('.F', '')
+            # Special handling for PEPE.F and UNI.F
+            if base_asset in ['PEPE', 'UNI']:
+                symbol = f"{base_asset}-USD"
+            else:
+                symbol = symbol_map.get(base_asset, f"{base_asset}-USD")
+        else:
+            symbol = symbol_map.get(kraken_asset, f"{kraken_asset}-USD")
         
-        # If no mapping found, try as-is with -USD suffix
-        if kraken_asset not in ['ZUSD'] and not kraken_asset.endswith('.EQ'):
-            return f"{kraken_asset}-USD"
+        # Handle special cases
+        if kraken_asset == 'ZUSD':
+            return 'USD'
+        elif kraken_asset.endswith('.EQ'):
+            return None  # Skip equities for now
         
-        return None
+        return symbol
 
     async def _fetch_comprehensive_market_data(self, portfolio: Dict) -> Dict:
         """Fetch comprehensive market data for quantitative analysis"""
@@ -620,6 +718,188 @@ class QuantitativeAdvisor:
             print(f"Error generating recommendations: {e}")
             return []
 
+    def _generate_asset_specific_recommendations(self, asset: str, metrics: Dict, technical_data: Dict) -> Dict:
+        """Generate detailed recommendations for a specific asset"""
+        try:
+            # Extract key metrics
+            sharpe = metrics.get('sharpe_ratio', 0)
+            sortino = metrics.get('sortino_ratio', 0) 
+            max_drawdown = metrics.get('max_drawdown', 0)
+            volatility = metrics.get('annual_volatility', 0)
+            allocation = metrics.get('current_allocation', 0)
+            
+            # Technical indicators
+            rsi = technical_data.get('rsi', 50)
+            trend = technical_data.get('trend', 'NEUTRAL')
+            momentum = technical_data.get('momentum_20d', 0)
+            
+            # Initialize recommendation
+            recommendation = {
+                'asset': asset,
+                'action': 'HOLD',
+                'confidence': 'MEDIUM',
+                'reasons': [],
+                'risks': [],
+                'target_allocation': allocation
+            }
+            
+            # Buy signals
+            buy_signals = 0
+            if rsi < 30:
+                buy_signals += 1
+                recommendation['reasons'].append(f"RSI oversold at {rsi:.1f}")
+            if trend == 'BULLISH' and momentum > 0:
+                buy_signals += 1
+                recommendation['reasons'].append(f"Bullish trend with {momentum:.1f}% momentum")
+            if sharpe > 1.5:
+                buy_signals += 1
+                recommendation['reasons'].append(f"Strong Sharpe ratio of {sharpe:.2f}")
+            
+            # Sell signals  
+            sell_signals = 0
+            if rsi > 70:
+                sell_signals += 1
+                recommendation['risks'].append(f"RSI overbought at {rsi:.1f}")
+            if trend == 'BEARISH' and momentum < 0:
+                sell_signals += 1
+                recommendation['risks'].append(f"Bearish trend with {momentum:.1f}% momentum")
+            if sharpe < 0:
+                sell_signals += 1
+                recommendation['risks'].append(f"Poor Sharpe ratio of {sharpe:.2f}")
+            
+            # Determine action
+            if buy_signals > sell_signals and allocation < 25:
+                recommendation['action'] = 'BUY'
+                recommendation['target_allocation'] = min(allocation + 5, 25)
+                recommendation['confidence'] = 'HIGH' if buy_signals >= 2 else 'MEDIUM'
+            elif sell_signals > buy_signals and allocation > 5:
+                recommendation['action'] = 'SELL'
+                recommendation['target_allocation'] = max(allocation - 5, 5)
+                recommendation['confidence'] = 'HIGH' if sell_signals >= 2 else 'MEDIUM'
+            
+            # Add risk metrics
+            recommendation['metrics'] = {
+                'sharpe_ratio': sharpe,
+                'sortino_ratio': sortino,
+                'max_drawdown': max_drawdown,
+                'volatility': volatility,
+                'rsi': rsi,
+                'trend': trend,
+                'momentum': momentum
+            }
+            
+            return recommendation
+            
+        except Exception as e:
+            print(f"Error generating recommendations for {asset}: {e}")
+            return {}
+
+    async def get_portfolio_health_check(self) -> Dict:
+        """Get a quick portfolio health check"""
+        try:
+            # Get portfolio data
+            portfolio = await self._get_actual_portfolio()
+            if not portfolio:
+                return {'status': 'ERROR', 'message': 'Could not retrieve portfolio data'}
+            
+            # Get market data
+            market_data = await self._fetch_comprehensive_market_data(portfolio)
+            
+            # Calculate key metrics
+            total_value = sum(asset['usd_value'] for asset in portfolio.values())
+            asset_count = len(portfolio)
+            max_allocation = max(asset['percentage'] for asset in portfolio.values())
+            
+            # Get technical signals
+            tech_signals = self._calculate_technical_indicators(market_data)
+            
+            # Asset-specific analysis
+            assets_needing_attention = []
+            for asset, data in portfolio.items():
+                if asset in market_data and asset in tech_signals:
+                    metrics = self._analyze_individual_asset(asset, data, market_data[asset])
+                    recommendation = self._generate_asset_specific_recommendations(
+                        asset, metrics, tech_signals[asset]
+                    )
+                    
+                    if recommendation.get('action') != 'HOLD':
+                        assets_needing_attention.append(recommendation)
+            
+            # Overall health score (0-100)
+            health_score = 100
+            
+            # Deduct for concentration risk
+            if max_allocation > 40:
+                health_score -= 20
+            elif max_allocation > 25:
+                health_score -= 10
+                
+            # Deduct for poor diversification
+            if asset_count < 5:
+                health_score -= 15
+            
+            # Deduct for assets needing attention
+            health_score -= len(assets_needing_attention) * 5
+            
+            health_score = max(0, min(100, health_score))
+            
+            return {
+                'timestamp': datetime.now().isoformat(),
+                'status': 'OK',
+                'portfolio_value': total_value,
+                'health_score': health_score,
+                'health_status': 'GOOD' if health_score >= 80 else 'FAIR' if health_score >= 60 else 'NEEDS_ATTENTION',
+                'assets_count': asset_count,
+                'max_allocation': max_allocation,
+                'assets_needing_attention': assets_needing_attention,
+                'summary': f"Portfolio health score: {health_score}/100. {len(assets_needing_attention)} assets need attention."
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'ERROR',
+                'message': f"Health check failed: {str(e)}"
+            }
+
+    async def get_asset_update(self, asset: str) -> Dict:
+        """Get detailed update for a specific asset"""
+        try:
+            # Get portfolio data
+            portfolio = await self._get_actual_portfolio()
+            if not portfolio or asset not in portfolio:
+                return {'status': 'ERROR', 'message': f'Asset {asset} not found in portfolio'}
+            
+            # Get market data
+            market_data = await self._fetch_comprehensive_market_data({asset: portfolio[asset]})
+            if not market_data or asset not in market_data:
+                return {'status': 'ERROR', 'message': f'Could not fetch market data for {asset}'}
+            
+            # Get technical signals
+            tech_signals = self._calculate_technical_indicators(market_data)
+            
+            # Generate detailed analysis
+            metrics = self._analyze_individual_asset(asset, portfolio[asset], market_data[asset])
+            recommendation = self._generate_asset_specific_recommendations(
+                asset, metrics, tech_signals[asset]
+            )
+            
+            return {
+                'status': 'OK',
+                'timestamp': datetime.now().isoformat(),
+                'asset': asset,
+                'current_allocation': portfolio[asset]['percentage'],
+                'usd_value': portfolio[asset]['usd_value'],
+                'recommendation': recommendation,
+                'technical_signals': tech_signals[asset],
+                'metrics': metrics
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'ERROR', 
+                'message': f"Asset update failed: {str(e)}"
+            }
+
     def _display_professional_analysis(self, analysis: Dict, recommendations: List[Dict]):
         """Display professional quantitative analysis results"""
         print("\n" + "="*80)
@@ -715,7 +995,43 @@ class QuantitativeAdvisor:
 async def main():
     """Main function"""
     advisor = QuantitativeAdvisor()
-    await advisor.analyze_portfolio()
+    
+    print("\n🔍 RUNNING PORTFOLIO ANALYSIS AND MONITORING\n")
+    
+    # 1. Get overall portfolio health check
+    print("📊 Getting portfolio health check...")
+    health_check = await advisor.get_portfolio_health_check()
+    
+    if health_check['status'] == 'OK':
+        print(f"\n=== PORTFOLIO HEALTH CHECK ===")
+        print(f"Health Score: {health_check['health_score']}/100")
+        print(f"Status: {health_check['health_status']}")
+        print(f"Portfolio Value: ${health_check['portfolio_value']:,.2f}")
+        print(f"Number of Assets: {health_check['assets_count']}")
+        
+        if health_check['assets_needing_attention']:
+            print("\n🚨 ASSETS NEEDING ATTENTION:")
+            for asset in health_check['assets_needing_attention']:
+                print(f"\n{asset['asset']}:")
+                print(f"  Action: {asset['action']} (Confidence: {asset['confidence']})")
+                if asset['reasons']:
+                    print("  Reasons:")
+                    for reason in asset['reasons']:
+                        print(f"    • {reason}")
+                if asset['risks']:
+                    print("  Risks:")
+                    for risk in asset['risks']:
+                        print(f"    • {risk}")
+    
+    # 2. Run full portfolio analysis
+    print("\n📈 Running comprehensive portfolio analysis...")
+    analysis_results = await advisor.analyze_portfolio()
+    
+    print("\n✅ Analysis complete!")
+    print("\nUse these methods to monitor your portfolio:")
+    print("1. get_portfolio_health_check() - Quick portfolio health assessment")
+    print("2. get_asset_update(asset) - Detailed analysis of a specific asset")
+    print("3. analyze_portfolio() - Comprehensive portfolio analysis")
 
 if __name__ == "__main__":
     asyncio.run(main()) 

@@ -145,58 +145,49 @@ class CryptoMarketAnalyzer:
             print(f"⚠️  Error building symbol cache: {e}")
     
     def _find_kraken_usd_pair(self, crypto_symbol: str) -> Optional[str]:
-        """Find the correct Kraken USD pair for a crypto symbol"""
+        """Enhanced method to find correct Kraken USD pair"""
         try:
-            # Common patterns for Kraken symbols
+            # Direct mappings for problematic symbols
+            direct_mappings = {
+                'MATIC': 'MATICUSD',
+                'UNI': 'UNIUSD', 
+                'COMP': 'COMPUSD',
+                'IMX': 'IMXUSD',
+                'PEPE': 'PEPEUSD',
+                'FTM': 'FTMUSD',
+                'LUNA': 'LUNAUSD',
+                'SUI': 'SUIUSD',
+                'NEAR': 'NEARUSD',
+                'APT': 'APTUSD',
+                'SEI': 'SEIUSD',
+                'TIA': 'TIAUSD'
+            }
+            
+            # Check direct mappings first
+            if crypto_symbol in direct_mappings:
+                kraken_pair = direct_mappings[crypto_symbol]
+                if kraken_pair in self.kraken_pairs:
+                    return kraken_pair
+            
+            # Try common patterns
             possible_patterns = [
-                f"{crypto_symbol}USD",       # Direct: BTCUSD
-                f"{crypto_symbol}ZUSD",      # With Z prefix: BTCZUSD
-                f"X{crypto_symbol}USD",      # With X prefix: XBTCUSD
-                f"X{crypto_symbol}ZUSD",     # With both: XBTCZUSD
-                f"XX{crypto_symbol}USD",     # Double X: XXBTCUSD
-                f"{crypto_symbol.upper()}USD", # Uppercase
-                f"X{crypto_symbol.upper()}ZUSD",
+                f"{crypto_symbol}USD",
+                f"{crypto_symbol}USDT",
+                f"X{crypto_symbol}USD",
+                f"{crypto_symbol}USD",
+                f"{crypto_symbol}USDC"
             ]
             
-            # Special mappings for known Kraken symbols
+            # Try special mappings for specific cryptos
             special_mappings = {
-                'BTC': ['XXBTZUSD', 'XBTUSD', 'XXBTCZUSD'],
-                'ETH': ['XETHZUSD', 'ETHUSD', 'XETHUSDT'],
-                'XRP': ['XXRPZUSD', 'XRPUSD', 'XXRPZUSD'],
-                'DOGE': ['XXDGZUSD', 'XDGUSD', 'DOGEUSDT'],
-                'XLM': ['XXLMZUSD', 'XLMUSD'],
-                'LTC': ['XLTCZUSD', 'LTCUSD'],
-                'XTZ': ['XTZUSD', 'XTZZUSD'],
-                'DOT': ['DOTUSD', 'DOTUSDT'],
-                'ADA': ['ADAUSD', 'ADAUSDT'],
-                'SOL': ['SOLUSD', 'SOLUSDT'],
-                'LINK': ['LINKUSD', 'LINKUSDT'],
-                'UNI': ['UNIUSD', 'UNIUSDT'],
-                'AAVE': ['AAVEUSD', 'AAVEUSDT'],
-                'SUSHI': ['SUSHIUSD', 'SUSHIUSDT'],
-                'CRV': ['CRVUSD', 'CRVUSDT'],
-                'COMP': ['COMPUSD', 'COMPUSDT'],
-                'MKR': ['MKRUSD', 'MKRUSDT'],
-                'YFI': ['YFIUSD', 'YFIUSDT'],
-                'SNX': ['SNXUSD', 'SNXUSDT'],
-                'AVAX': ['AVAXUSD', 'AVAXUSDT'],
                 'MATIC': ['MATICUSD', 'MATICUSDT'],
-                'SHIB': ['SHIBUSD', 'SHIBUSDT'],
-                'TRX': ['TRXUSD', 'TRXUSDT'],
-                'ATOM': ['ATOMUSD', 'ATOMUSDT'],
-                'FIL': ['FILUSD', 'FILUSDT'],
-                'ALGO': ['ALGOUSD', 'ALGOUSDT'],
-                'VET': ['VETUSD', 'VETUSDT'],
-                'THETA': ['THETAUSD', 'THETAUSDT'],
-                'HBAR': ['HBARUSD', 'HBARUSDT'],
-                'ICP': ['ICPUSD', 'ICPUSDT'],
-                'NEAR': ['NEARUSD', 'NEARUSDT'],
+                'UNI': ['UNIUSD', 'UNIUSDT'],
+                'COMP': ['COMPUSD', 'COMPUSDT'],
+                'IMX': ['IMXUSD', 'IMXUSDT'],
+                'PEPE': ['PEPEUSD', 'PEPEUSDT'],
                 'FTM': ['FTMUSD', 'FTMUSDT'],
-                'MANA': ['MANAUSD', 'MANAUSDT'],
-                'SAND': ['SANDUSD', 'SANDUSDT'],
-                'APE': ['APEUSD', 'APEUSDT'],
-                'LDO': ['LDOUSD', 'LDOUSDT'],
-                'LRC': ['LRCUSD', 'LRCUSDT'],
+                'LUNA': ['LUNAUSD', 'LUNAUSDT'],
+                'SUI': ['SUIUSD', 'SUIUSDT'],
                 'BONK': ['BONKUSD', 'BONKUSDT'],
                 'FLOKI': ['FLOKIUSD', 'FLOKIUSDT'],
                 'PEPE': ['PEPEUSD', 'PEPEUSDT']
@@ -210,6 +201,19 @@ class CryptoMarketAnalyzer:
             
             # Try common patterns
             for pattern in possible_patterns:
+                if pattern in self.kraken_pairs:
+                    return pattern
+            
+            # Enhanced fallback patterns for problematic symbols
+            enhanced_patterns = [
+                f"{crypto_symbol}USD",
+                f"{crypto_symbol}USDT", 
+                f"X{crypto_symbol}USD",
+                f"{crypto_symbol}USD",
+                f"{crypto_symbol}USDC"
+            ]
+            
+            for pattern in enhanced_patterns:
                 if pattern in self.kraken_pairs:
                     return pattern
             
@@ -237,25 +241,20 @@ class CryptoMarketAnalyzer:
         print("🔧 Setting up fallback symbol mappings...")
         
         self.kraken_symbol_cache = {
-            'BTC-USD': 'XXBTZUSD',
-            'ETH-USD': 'XETHZUSD', 
-            'XRP-USD': 'XXRPZUSD',
+            'BTC-USD': 'XBTUSD',
+            'ETH-USD': 'ETHUSD', 
+            'XRP-USD': 'XRPUSD',
             'ADA-USD': 'ADAUSD',
             'SOL-USD': 'SOLUSD',
-            'DOGE-USD': 'XXDGZUSD',
+            'DOGE-USD': 'XDGUSD',
             'DOT-USD': 'DOTUSD',
-            'LTC-USD': 'XLTCZUSD',
-            'XLM-USD': 'XXLMZUSD',
+            'LTC-USD': 'LTCUSD',
+            'XLM-USD': 'XLMUSD',
             'LINK-USD': 'LINKUSD',
             'UNI-USD': 'UNIUSD',
-            'AAVE-USD': 'AAVEUSD',
-            'SUSHI-USD': 'SUSHIUSD',
-            'CRV-USD': 'CRVUSD',
-            'XTZ-USD': 'XTZUSD',
-            'ATOM-USD': 'ATOMUSD',
             'AVAX-USD': 'AVAXUSD',
-            'TRX-USD': 'TRXUSD',
-            'ALGO-USD': 'ALGOUSD'
+            'XLM-USD': 'XLMUSD',
+            'ATOM-USD': 'ATOMUSD'
         }
         
         print(f"✅ Setup {len(self.kraken_symbol_cache)} fallback mappings")
@@ -323,26 +322,30 @@ class CryptoMarketAnalyzer:
                     
                     # Try to get Kraken price for verification
                     kraken_price = None
+                    kraken_symbol = None
                     try:
                         kraken_symbol = self._convert_to_kraken_symbol(symbol)
                         if kraken_symbol:
                             kraken_price = kraken_api.get_price(kraken_symbol)
-                    except:
-                        pass
-                    
-                    self.market_data[symbol] = {
-                        'symbol': symbol,
-                        'current_price': kraken_price if kraken_price and kraken_price > 0 else current_price,
-                        'hist_1y': hist_1y,
-                        'hist_3m': hist_3m,
-                        'hist_1m': hist_1m,
-                        'hist_7d': hist_7d,
-                        'data_quality': 'HIGH' if not hist_1y.empty else 'MEDIUM' if not hist_3m.empty else 'LOW'
-                    }
-                    successful_fetches += 1
-                else:
-                    failed_symbols.append(symbol)
-                    
+                            if kraken_price and kraken_price > 0:
+                                print(f"   ✅ Kraken price for {symbol}: ${kraken_price:.4f}")
+                            else:
+                                print(f"   ⚠️  Kraken returned zero price for {symbol} ({kraken_symbol})")
+                        else:
+                            print(f"   ❌ No Kraken symbol mapping for {symbol}")
+                    except Exception as e:
+                        print(f"   ❌ Kraken API error for {symbol}: {e}")
+                
+                self.market_data[symbol] = {
+                    'symbol': symbol,
+                    'current_price': kraken_price if kraken_price and kraken_price > 0 else current_price,
+                    'hist_1y': hist_1y,
+                    'hist_3m': hist_3m,
+                    'hist_1m': hist_1m,
+                    'hist_7d': hist_7d,
+                    'data_quality': 'HIGH' if not hist_1y.empty else 'MEDIUM' if not hist_3m.empty else 'LOW'
+                }
+                successful_fetches += 1
             except Exception as e:
                 print(f"   ⚠️  Failed to fetch {symbol}: {e}")
                 failed_symbols.append(symbol)
