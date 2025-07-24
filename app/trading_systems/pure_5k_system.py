@@ -119,8 +119,8 @@ class Pure5KLiveTradingSystem:
         self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
         
         # Portfolio allocation - MORE AGGRESSIVE
-        self.crypto_allocation = 0.40  # Increased from 0.30
-        self.energy_allocation = 0.35  # Increased from 0.30
+        self.crypto_allocation = 0.60  # Increased from 0.30
+        self.energy_allocation = 0.10  # Increased from 0.30
         self.tech_allocation = 0.20    # Reduced from 0.35 to focus on fewer, stronger positions
         self.etf_allocation = 0.05     # Keep small for stability
         
@@ -808,7 +808,12 @@ class Pure5KLiveTradingSystem:
             trailing_stop_exits = 0
             for symbol, position in list(self.positions.items()):
                 if position['shares'] > 0:
-                    current_price = self.get_price_from_cache(symbol, date)
+                    # Use Kraken API for crypto, cache for stocks
+                    if symbol in self.crypto_symbols:
+                        current_price = self.get_current_price_online(symbol, date)
+                    else:
+                        current_price = self.get_price_from_cache(symbol, date)
+                    
                     if current_price > 0:
                         
                         # Check trailing stop
@@ -834,7 +839,12 @@ class Pure5KLiveTradingSystem:
             trades_executed = 0
             
             for symbol, signal in signals.items():
-                current_price = self.get_price_from_cache(symbol, date)
+                # Use Kraken API for crypto, cache for stocks
+                if symbol in self.crypto_symbols:
+                    current_price = self.get_current_price_online(symbol, date)
+                else:
+                    current_price = self.get_price_from_cache(symbol, date)
+                    
                 if current_price <= 0:
                     continue
                 
@@ -963,7 +973,12 @@ class Pure5KLiveTradingSystem:
         total_value = self.cash
         
         for symbol, position in self.positions.items():
-            current_price = self.get_price_from_cache(symbol, date)
+            # Use Kraken API for crypto, cache for stocks
+            if symbol in self.crypto_symbols:
+                current_price = self.get_current_price_online(symbol, date)
+            else:
+                current_price = self.get_price_from_cache(symbol, date)
+                
             if current_price > 0:
                 total_value += position['shares'] * current_price
         
@@ -1437,8 +1452,8 @@ def main():
         # Create pure $5K trading system
         system = Pure5KLiveTradingSystem(initial_balance=5000.0)
         
-        # Run 30-day backtest
-        results = system.run_pure_5k_backtest(days=30)
+        # Run 45-day backtest
+        results = system.run_pure_5k_backtest(days=45)
         
         # Save results
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
