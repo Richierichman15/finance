@@ -1,0 +1,6 @@
+{
+  "initial_balance": 5000.0,
+  "kraken_integration": true,
+  "supported_crypto_symbols": 7,
+  "message": "Kraken integration ready - implement full backtest logic"
+}
