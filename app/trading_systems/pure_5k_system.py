@@ -56,6 +56,11 @@ class Pure5KLiveTradingSystem:
         # Per-trade equity curve for intraday risk realism
         self.intraday_equity_values = []  # floats
         self.intraday_equity_times = []   # timestamps or date strings
+        # Trading frictions
+        self.trading_costs = {
+            'fee_rate': 0.0010,      # 10 bps per side (0.10%)
+            'slippage_bps': 10       # 10 bps price slippage (0.10%)
+        }
         # Container for computed performance metrics
         self.performance_metrics = {
             'daily_returns': None,
@@ -642,21 +647,31 @@ class Pure5KLiveTradingSystem:
         for symbol in self.crypto_symbols:
             price = self.get_price_from_cache(symbol, date)
             if price > 0:
-                investment_amount = crypto_per_symbol
-                shares = investment_amount / price
-                portfolio_pct = (investment_amount / self.initial_balance) * 100
-                
-                self.positions[symbol] = {
-                    'shares': shares,
-                    'avg_price': price,
-                    'category': 'crypto'
-                }
-                
-                self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Crypto_Allocation')
-                total_invested += investment_amount
-                
-                print(f"   {symbol:<10} {shares:>12.8f} @ ${price:>8.4f} = ${investment_amount:>8.2f} ({portfolio_pct:>5.1f}%)")
-                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${price:.4f} = ${investment_amount:.2f}")
+                budget = crypto_per_symbol
+                shares = self._max_shares_for_budget(budget, 'BUY', price)
+                if shares <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                exec_price = self._adjusted_price('BUY', price)
+                fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                total_cost = shares * exec_price * (1.0 + fee_rate)
+                if total_cost > self.cash:
+                    # scale to actual available cash for this symbol
+                    shares = self._max_shares_for_budget(self.cash, 'BUY', price)
+                    exec_price = self._adjusted_price('BUY', price)
+                    total_cost = shares * exec_price * (1.0 + fee_rate)
+                if shares <= 0 or total_cost <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                # Deduct cash and add position
+                self.cash -= total_cost
+                self._add_to_position(symbol, shares, exec_price, 'crypto')
+                total_invested += total_cost
+                portfolio_pct = (total_cost / self.initial_balance) * 100
+                # Record trade with adjusted execution price and cash impact
+                self._record_trade(date, symbol, 'BUY', shares, exec_price, total_cost, 'Day1_Crypto_Allocation')
+                print(f"   {symbol:<10} {shares:>12.8f} @ ${exec_price:>8.4f} = ${total_cost:>8.2f} ({portfolio_pct:>5.1f}%)")
+                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${exec_price:.4f} = ${total_cost:.2f}")
             else:
                 failed_symbols.append(symbol)
                 self.logger.warning(f"Failed to get price for {symbol}")
@@ -668,27 +683,35 @@ class Pure5KLiveTradingSystem:
         for symbol in self.tech_stocks:
             price = self.get_price_from_cache(symbol, date)
             if price > 0:
-                investment_amount = tech_per_symbol
-                shares = investment_amount / price
-                portfolio_pct = (investment_amount / self.initial_balance) * 100
-                
-                self.positions[symbol] = {
-                    'shares': shares,
-                    'avg_price': price,
-                    'category': 'tech'
-                }
-                
-                self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Tech_Allocation')
-                total_invested += investment_amount
-                
-                print(f"   {symbol:<10} {shares:>12.8f} @ ${price:>8.4f} = ${investment_amount:>8.2f} ({portfolio_pct:>5.1f}%)")
-                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${price:.4f} = ${investment_amount:.2f}")
+                budget = tech_per_symbol
+                shares = self._max_shares_for_budget(budget, 'BUY', price)
+                if shares <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                exec_price = self._adjusted_price('BUY', price)
+                fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                total_cost = shares * exec_price * (1.0 + fee_rate)
+                if total_cost > self.cash:
+                    shares = self._max_shares_for_budget(self.cash, 'BUY', price)
+                    exec_price = self._adjusted_price('BUY', price)
+                    total_cost = shares * exec_price * (1.0 + fee_rate)
+                if shares <= 0 or total_cost <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                self.cash -= total_cost
+                self._add_to_position(symbol, shares, exec_price, 'tech')
+                total_invested += total_cost
+                portfolio_pct = (total_cost / self.initial_balance) * 100
+                self._record_trade(date, symbol, 'BUY', shares, exec_price, total_cost, 'Day1_Tech_Allocation')
+                print(f"   {symbol:<10} {shares:>12.8f} @ ${exec_price:>8.4f} = ${total_cost:>8.2f} ({portfolio_pct:>5.1f}%)")
+                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${exec_price:.4f} = ${total_cost:.2f}")
             else:
                 failed_symbols.append(symbol)
                 self.logger.warning(f"Failed to get price for {symbol}")
         
-        # Summary
-        self.cash -= total_invested
+        # Summary (fees+slippage already applied per-trade above when adding positions)
+        # total_invested here is a nominal target; cash was deducted per trade with costs
+        # so we avoid double-counting by not reducing cash again.
         print("\n📊 ALLOCATION SUMMARY:")
         print(f"   💰 Total Investment: ${total_invested:.2f} ({(total_invested/self.initial_balance)*100:.1f}% of portfolio)")
         print(f"    Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
@@ -727,6 +750,23 @@ class Pure5KLiveTradingSystem:
             self.intraday_equity_times.append(date)
         except Exception as e:
             self.logger.debug(f"Failed updating intraday equity after trade: {e}")
+
+    def _adjusted_price(self, action: str, price: float) -> float:
+        """Apply slippage to execution price based on action.
+        Buys pay up (price increases), Sells receive less (price decreases)."""
+        slip = self.trading_costs.get('slippage_bps', 0) / 10000.0
+        if action == 'BUY':
+            return price * (1.0 + slip)
+        elif action == 'SELL':
+            return price * (1.0 - slip)
+        return price
+
+    def _max_shares_for_budget(self, budget: float, action: str, price: float) -> float:
+        """Compute shares purchasable given a cash budget including fees and slippage."""
+        adj_price = self._adjusted_price(action, price)
+        fee_rate = self.trading_costs.get('fee_rate', 0.0)
+        denom = adj_price * (1.0 + fee_rate)
+        return 0.0 if denom <= 0 else budget / denom
 
     def manage_cash_position(self, date: str) -> None:
         """Actively manage cash position with aggressive reinvestment"""
@@ -791,10 +831,15 @@ class Pure5KLiveTradingSystem:
                             if position_size >= 100:  # Minimum trade size
                                 shares = position_size / current_price
                                 
-                                # Execute reinvestment
-                                self._add_to_position(symbol, shares, current_price, 
-                                                    self._get_symbol_category(symbol))
-                                self.cash -= position_size
+                                # Execute reinvestment with costs and slippage
+                                exec_price = self._adjusted_price('BUY', current_price)
+                                fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                                shares = self._max_shares_for_budget(position_size, 'BUY', current_price)
+                                total_cost = shares * exec_price * (1.0 + fee_rate)
+                                if total_cost <= self.cash and shares > 0:
+                                    self._add_to_position(symbol, shares, exec_price, 
+                                                        self._get_symbol_category(symbol))
+                                    self.cash -= total_cost
                                 cash_to_deploy -= position_size
                                 
                                 self._record_trade(date, symbol, 'BUY', shares, current_price,
@@ -897,10 +942,14 @@ class Pure5KLiveTradingSystem:
                 if signal in ["EXPLOSIVE_UP", "COUNTER_TREND_UP", "SHORT_TERM_UP"] and self.cash > 200:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
                     buy_amount = min(500 if category == 'crypto' else 400, self.cash * 0.5)  # Increased from 400/300
-                    shares = buy_amount / current_price
-                    
-                    self._add_to_position(symbol, shares, current_price, category)
-                    self.cash -= buy_amount
+                    # Compute shares to fit budget including costs/slippage
+                    shares = self._max_shares_for_budget(buy_amount, 'BUY', current_price)
+                    exec_price = self._adjusted_price('BUY', current_price)
+                    fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                    total_cost = shares * exec_price * (1.0 + fee_rate)
+                    if total_cost <= self.cash and shares > 0:
+                        self._add_to_position(symbol, shares, exec_price, category)
+                        self.cash -= total_cost
                     self.last_trade_date[symbol] = date
                     
                     signal_type = "counter-trend" if signal == "COUNTER_TREND_UP" else "momentum"
@@ -1127,41 +1176,53 @@ class Pure5KLiveTradingSystem:
         if not self.paper_trading:
             self.logger.error("Paper trade called in live mode!")
             return False
-        
-        amount = shares * price
-        
+
+        fee_rate = self.trading_costs.get('fee_rate', 0.0)
+
         if action == 'BUY':
-            if amount > self.cash:
-                self.logger.warning(f"Insufficient cash for {symbol}: need ${amount:.2f}, have ${self.cash:.2f}")
+            # Apply slippage and fees and check cash
+            exec_price = self._adjusted_price('BUY', price)
+            total_cost = shares * exec_price * (1.0 + fee_rate)
+            if total_cost > self.cash:
+                # Scale shares to available cash
+                shares = self._max_shares_for_budget(self.cash, 'BUY', price)
+                exec_price = self._adjusted_price('BUY', price)
+                total_cost = shares * exec_price * (1.0 + fee_rate)
+            if shares <= 0:
+                self.logger.warning("BUY aborted: insufficient cash after costs")
                 return False
-            
-            self.cash -= amount
-            self._add_to_position(symbol, shares, price, self._get_symbol_category(symbol))
-            
+            self.cash -= total_cost
+            self._add_to_position(symbol, shares, exec_price, self._get_symbol_category(symbol))
+            recorded_amount = total_cost
+
         elif action == 'SELL':
             if symbol not in self.positions or self.positions[symbol]['shares'] < shares:
                 self.logger.warning(f"Insufficient shares to sell {symbol}")
                 return False
-            
+            exec_price = self._adjusted_price('SELL', price)
             self.positions[symbol]['shares'] -= shares
-            self.cash += amount
-        
-        # Record trade
-        self._record_trade(datetime.now().strftime('%Y-%m-%d'), symbol, action, 
-                          shares, price, amount, 'Live_Paper_Trading', reason)
-        
-        self.logger.info(f"PAPER {action}: {shares:.6f} {symbol} @ ${price:.4f} - {reason}")
+            proceeds_net = shares * exec_price * (1.0 - fee_rate)
+            self.cash += proceeds_net
+            recorded_amount = proceeds_net
+        else:
+            self.logger.warning(f"Unknown action: {action}")
+            return False
+
+        # Record trade with execution-adjusted price and actual cash amount
+        self._record_trade(datetime.now().strftime('%Y-%m-%d'), symbol, action,
+                           shares, exec_price, recorded_amount, 'Live_Paper_Trading', reason)
+        self.logger.info(f"PAPER {action}: {shares:.6f} {symbol} @ ${exec_price:.4f} - {reason}")
         return True
 
     def _get_symbol_category(self, symbol: str) -> str:
         """Get category for symbol"""
-        if symbol in self.crypto_symbols:
+        if symbol in getattr(self, 'crypto_symbols', []):
             return 'crypto'
-        elif symbol in self.energy_stocks:
+        if symbol in getattr(self, 'energy_stocks', []):
             return 'energy'
-        elif symbol in self.tech_stocks:
+        if symbol in getattr(self, 'tech_stocks', []):
             return 'tech'
-        elif symbol in self.etf_symbols:
+        if symbol in getattr(self, 'etf_symbols', []):
             return 'etf'
         return 'unknown'
 
