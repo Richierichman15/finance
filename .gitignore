@@ -20,3 +20,5 @@ historical_data_cache_51days.pkl
 historical_data_cache_60days.pkl
 historical_data_cache_75days.pkl
 pure_5k_cache_40days.pkl
+kraken_pairs.json
+app/data/results

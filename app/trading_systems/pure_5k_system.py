@@ -48,7 +48,38 @@ class Pure5KLiveTradingSystem:
         self.cash = initial_balance
         self.positions = {}  # {symbol: {'shares': float, 'avg_price': float}}
         self.trades = []
+        # Backtest metric series: floats only (portfolio values)
         self.daily_values = []
+        # Snapshot logs (dicts) for richer reporting
+        self.backtest_daily_snapshots = []
+        self.live_daily_snapshots = []
+        # Per-trade equity curve for intraday risk realism
+        self.intraday_equity_values = []  # floats
+        self.intraday_equity_times = []   # timestamps or date strings
+        # Container for computed performance metrics
+        self.performance_metrics = {
+            'daily_returns': None,
+            'cumulative_returns': None,
+            'sharpe_ratio': 0.0,
+            'sortino_ratio': 0.0,
+            'max_drawdown': 0.0,
+            # Day-based metrics
+            'day_win_rate': 0.0,
+            'day_profit_factor': 0.0,
+            # Trade-based metrics
+            'trade_win_rate': 0.0,
+            'trade_profit_factor': 0.0,
+            'recovery_factor': 0.0,
+            'risk_adjusted_return': 0.0,
+            'beta': 0.0,
+            'alpha': 0.0,
+            'correlation_matrix': None,
+            # Sample sizes
+            'n_daily': 0,
+            'n_intraday': 0,
+            'n_trades_closed': 0,
+            'unstable_metrics_warning': ''
+        }
         self.historical_data_cache = {}
         self.logger = logging.getLogger(__name__)
         
@@ -308,7 +339,9 @@ class Pure5KLiveTradingSystem:
             for attempt in range(max_retries):
                 try:
                     self.logger.info(f"Fetching Kraken price for {internal_symbol} (Kraken: {kraken_symbol}) - Attempt {attempt + 1}/{max_retries}")
-                    price = kraken_api.get_price(kraken_symbol)
+                    # IMPORTANT: pass the internal symbol; KrakenAPI.get_price maps to Kraken pair internally.
+                    # Passing the Kraken pair here would cause a reverse mapping to a non-Kraken value and fail.
+                    price = kraken_api.get_price(internal_symbol)
                     
                     if price > 0:
                         self.logger.info(f"Successfully got Kraken price for {internal_symbol}: ${price:.2f}")
@@ -687,6 +720,14 @@ class Pure5KLiveTradingSystem:
         # Update last trade date for cooldown tracking
         self.last_trade_date[symbol] = date
 
+        # Update intraday equity curve (post-trade) for more realistic drawdown
+        try:
+            eq_value = self.calculate_portfolio_value(date)
+            self.intraday_equity_values.append(float(eq_value))
+            self.intraday_equity_times.append(date)
+        except Exception as e:
+            self.logger.debug(f"Failed updating intraday equity after trade: {e}")
+
     def manage_cash_position(self, date: str) -> None:
         """Actively manage cash position with aggressive reinvestment"""
         try:
@@ -913,13 +954,16 @@ class Pure5KLiveTradingSystem:
         portfolio_value = self.calculate_portfolio_value(date)
         return_pct = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
         
-        self.daily_values.append({
+        # Store structured snapshot separately; keep daily_values as numeric series only
+        self.backtest_daily_snapshots.append({
             'date': date,
             'portfolio_value': portfolio_value,
             'cash': self.cash,
             'return_pct': return_pct,
-            'trades_count': len([t for t in self.trades if t['date'] == date])
+            'active_positions': len([p for p in self.positions.values() if p['shares'] > 0])
         })
+        
+        self.daily_values.append(portfolio_value)
         
         print(f"  📊 Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
 
@@ -1199,7 +1243,8 @@ class Pure5KLiveTradingSystem:
         portfolio_value = self.calculate_portfolio_value_live()
         return_pct = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
         
-        self.daily_values.append({
+        # Store live structured snapshot separately
+        self.live_daily_snapshots.append({
             'timestamp': current_time.isoformat(),
             'portfolio_value': portfolio_value,
             'cash': self.cash,
@@ -1302,10 +1347,16 @@ class Pure5KLiveTradingSystem:
         with open(trades_file, 'w') as f:
             json.dump(self.trades, f, indent=2, default=str)
         
-        # Save daily values
-        values_file = f"app/data/live/daily_values_{timestamp}.json"
-        with open(values_file, 'w') as f:
-            json.dump(self.daily_values, f, indent=2, default=str)
+        # Save live snapshot values
+        live_values_file = f"app/data/live/daily_values_{timestamp}.json"
+        with open(live_values_file, 'w') as f:
+            json.dump(self.live_daily_snapshots, f, indent=2, default=str)
+        
+        # Save backtest snapshots if present
+        if self.backtest_daily_snapshots:
+            backtest_values_file = f"app/data/live/backtest_daily_values_{timestamp}.json"
+            with open(backtest_values_file, 'w') as f:
+                json.dump(self.backtest_daily_snapshots, f, indent=2, default=str)
 
     def start_live_monitoring(self, monitoring_interval: int = 300) -> None:
         """Start live monitoring with specified interval (seconds)"""
@@ -1371,9 +1422,10 @@ class Pure5KLiveTradingSystem:
             self.logger.info("Calculating advanced performance metrics...")
             
             # Calculate daily returns
-            portfolio_values = pd.Series(self.daily_values)
+            portfolio_values = pd.Series(self.daily_values, dtype=float)
             daily_returns = portfolio_values.pct_change().dropna()
             self.performance_metrics['daily_returns'] = daily_returns
+            self.performance_metrics['n_daily'] = int(len(daily_returns))
             
             # Calculate cumulative returns
             cumulative_returns = (1 + daily_returns).cumprod()
@@ -1386,7 +1438,9 @@ class Pure5KLiveTradingSystem:
             self.performance_metrics['sharpe_ratio'] = (avg_return - risk_free_rate) / std_dev if std_dev > 0 else 0
             
             # 2. Sortino Ratio
-            downside_returns = daily_returns[daily_returns < 0]
+            # Use daily risk-free threshold for downside; more conservative than 0
+            rf_daily = risk_free_rate / 252.0
+            downside_returns = daily_returns[daily_returns < rf_daily]
             downside_std = np.sqrt(np.mean(downside_returns ** 2)) * np.sqrt(252)
             self.performance_metrics['sortino_ratio'] = (avg_return - risk_free_rate) / downside_std if downside_std > 0 else 0
             
@@ -1394,16 +1448,75 @@ class Pure5KLiveTradingSystem:
             rolling_max = cumulative_returns.expanding().max()
             drawdowns = cumulative_returns / rolling_max - 1
             self.performance_metrics['max_drawdown'] = float(drawdowns.min())
+
+            # 3b. Intraday risk metrics from per-trade equity curve
+            if len(self.intraday_equity_values) > 1:
+                intraday_series = pd.Series(self.intraday_equity_values, dtype=float)
+                intraday_returns = intraday_series.pct_change().dropna()
+                self.performance_metrics['n_intraday'] = int(len(intraday_returns))
+                # Intraday max drawdown on equity curve
+                intraday_cum = (1 + intraday_returns).cumprod()
+                intraday_roll_max = intraday_cum.expanding().max()
+                intraday_dd = intraday_cum / intraday_roll_max - 1
+                self.performance_metrics['intraday_max_drawdown'] = float(intraday_dd.min())
+                # Intraday volatility (annualized proxy using per-trade steps ~ not time-normalized)
+                self.performance_metrics['intraday_volatility'] = float(intraday_returns.std())
+            else:
+                self.performance_metrics['n_intraday'] = 0
+                self.performance_metrics['intraday_max_drawdown'] = 0.0
+                self.performance_metrics['intraday_volatility'] = 0.0
             
-            # 4. Win Rate
+            # 4. Day-based Win Rate
             winning_days = len(daily_returns[daily_returns > 0])
             total_days = len(daily_returns)
-            self.performance_metrics['win_rate'] = winning_days / total_days if total_days > 0 else 0
+            self.performance_metrics['day_win_rate'] = winning_days / total_days if total_days > 0 else 0
             
-            # 5. Profit Factor
+            # 5. Day-based Profit Factor (kept for context)
             gains = daily_returns[daily_returns > 0].sum()
             losses = abs(daily_returns[daily_returns < 0].sum())
-            self.performance_metrics['profit_factor'] = gains / losses if losses != 0 else 0
+            self.performance_metrics['day_profit_factor'] = gains / losses if losses != 0 else 0
+
+            # 5b. Trade-based metrics using FIFO realized PnL
+            realized_pnls = []  # per-closed-lot PnL values
+            fifo_books: Dict[str, list] = {}
+            # Ensure chronological order; trades store date 'YYYY-MM-DD'
+            sorted_trades = sorted(self.trades, key=lambda t: (t.get('date', ''), t.get('symbol', ''), 0 if t.get('action')=='BUY' else 1))
+            for tr in sorted_trades:
+                sym = tr.get('symbol')
+                action = tr.get('action')
+                shares = float(tr.get('shares', 0) or 0)
+                price = float(tr.get('price', 0) or 0)
+                if not sym or shares <= 0 or price <= 0:
+                    continue
+                fifo_books.setdefault(sym, [])
+                if action == 'BUY':
+                    fifo_books[sym].append([shares, price])
+                elif action == 'SELL':
+                    remaining = shares
+                    while remaining > 0 and fifo_books[sym]:
+                        lot_shares, lot_price = fifo_books[sym][0]
+                        take = min(remaining, lot_shares)
+                        pnl = (price - lot_price) * take
+                        realized_pnls.append(pnl)
+                        lot_shares -= take
+                        remaining -= take
+                        if lot_shares <= 1e-12:
+                            fifo_books[sym].pop(0)
+                        else:
+                            fifo_books[sym][0][0] = lot_shares
+                    # If no lots to sell against, skip remainder (short sales not modeled)
+            closed = len(realized_pnls)
+            self.performance_metrics['n_trades_closed'] = int(closed)
+            if closed > 0:
+                wins = [p for p in realized_pnls if p > 0]
+                losses_p = [-p for p in realized_pnls if p < 0]
+                self.performance_metrics['trade_win_rate'] = len(wins) / closed if closed > 0 else 0
+                total_win = float(np.sum(wins)) if wins else 0.0
+                total_loss = float(np.sum(losses_p)) if losses_p else 0.0
+                self.performance_metrics['trade_profit_factor'] = (total_win / total_loss) if total_loss > 0 else (0 if total_win == 0 else float('inf'))
+            else:
+                self.performance_metrics['trade_win_rate'] = 0.0
+                self.performance_metrics['trade_profit_factor'] = 0.0
             
             # 6. Recovery Factor
             total_return = cumulative_returns.iloc[-1] - 1
@@ -1416,21 +1529,32 @@ class Pure5KLiveTradingSystem:
             
             # 8. Alpha & Beta vs BTC
             try:
-                btc_data = yf.download('BTC-USD', start=portfolio_values.index[0], end=portfolio_values.index[-1])
-                btc_returns = btc_data['Close'].pct_change().dropna()
-                
-                # Calculate beta
-                covariance = daily_returns.cov(btc_returns)
-                market_variance = btc_returns.var()
-                beta = covariance / market_variance if market_variance != 0 else 0
-                self.performance_metrics['beta'] = beta
-                
-                # Calculate alpha
-                market_return = btc_returns.mean() * 252
-                alpha = avg_return - (risk_free_rate + beta * (market_return - risk_free_rate))
-                self.performance_metrics['alpha'] = alpha
-                
+                # Only attempt alpha/beta if we can infer a date range
+                if isinstance(portfolio_values.index, pd.DatetimeIndex) and len(portfolio_values) > 2:
+                    start_dt = portfolio_values.index[0]
+                    end_dt = portfolio_values.index[-1]
+                    btc_data = yf.download('BTC-USD', start=start_dt, end=end_dt)
+                    if not btc_data.empty:
+                        btc_returns = btc_data['Close'].pct_change().dropna()
+                        if not btc_returns.empty and len(daily_returns) > 1:
+                            # Align lengths if needed
+                            min_len = min(len(daily_returns), len(btc_returns))
+                            dr = daily_returns.tail(min_len)
+                            br = btc_returns.tail(min_len)
+                            covariance = dr.cov(br)
+                            market_variance = br.var()
+                            beta = covariance / market_variance if market_variance != 0 else 0
+                            self.performance_metrics['beta'] = float(beta)
+                            market_return = br.mean() * 252
+                            alpha = avg_return - (risk_free_rate + beta * (market_return - risk_free_rate))
+                            self.performance_metrics['alpha'] = float(alpha)
+                else:
+                    # No datetime context in backtest list; skip alpha/beta
+                    self.performance_metrics['beta'] = 0.0
+                    self.performance_metrics['alpha'] = 0.0
             except Exception as e:
+                self.performance_metrics['beta'] = 0.0
+                self.performance_metrics['alpha'] = 0.0
                 self.logger.warning(f"Could not calculate alpha/beta: {e}")
             
             # 9. Asset Correlations
@@ -1445,6 +1569,16 @@ class Pure5KLiveTradingSystem:
             if not returns_df.empty:
                 self.performance_metrics['correlation_matrix'] = returns_df.corr()
             
+            # Stability warnings
+            warnings = []
+            if self.performance_metrics['n_daily'] < 30:
+                warnings.append("Daily sample < 30; Sharpe/Sortino/Drawdown may be unstable")
+            if self.performance_metrics['n_trades_closed'] < 10:
+                warnings.append("Closed trades < 10; trade metrics may be unstable")
+            if self.performance_metrics.get('n_intraday', 0) < 20:
+                warnings.append("Intraday equity points < 20; intraday drawdown/vol may be unstable")
+            self.performance_metrics['unstable_metrics_warning'] = '; '.join(warnings)
+
             return self.performance_metrics
             
         except Exception as e:
@@ -1458,26 +1592,46 @@ class Pure5KLiveTradingSystem:
             print("-" * 40)
             
             print(f"\n📈 Risk-Adjusted Returns:")
-            print(f"   Sharpe Ratio: {self.performance_metrics['sharpe_ratio']:.2f}")
-            print(f"   Sortino Ratio: {self.performance_metrics['sortino_ratio']:.2f}")
-            print(f"   Risk-Adjusted Return: {self.performance_metrics['risk_adjusted_return']:.2f}")
+            print(f"   Sharpe Ratio: {self.performance_metrics.get('sharpe_ratio', 0.0):.2f}")
+            print(f"   Sortino Ratio: {self.performance_metrics.get('sortino_ratio', 0.0):.2f}")
+            print(f"   Risk-Adjusted Return: {self.performance_metrics.get('risk_adjusted_return', 0.0):.2f}")
             
             print(f"\n📊 Risk Metrics:")
-            print(f"   Maximum Drawdown: {self.performance_metrics['max_drawdown']*100:.1f}%")
-            print(f"   Beta vs BTC: {self.performance_metrics['beta']:.2f}")
-            print(f"   Alpha (annualized): {self.performance_metrics['alpha']*100:.1f}%")
+            print(f"   Maximum Drawdown: {self.performance_metrics.get('max_drawdown', 0.0)*100:.1f}%")
+            print(f"   Intraday Max Drawdown (per-trade): {self.performance_metrics.get('intraday_max_drawdown', 0.0)*100:.1f}% (points={self.performance_metrics.get('n_intraday', 0)})")
+            print(f"   Intraday Volatility (per-trade std): {self.performance_metrics.get('intraday_volatility', 0.0):.4f}")
+            print(f"   Beta vs BTC: {self.performance_metrics.get('beta', 0.0):.2f}")
+            print(f"   Alpha (annualized): {self.performance_metrics.get('alpha', 0.0)*100:.1f}%")
             
             print(f"\n🎯 Trading Metrics:")
-            print(f"   Win Rate: {self.performance_metrics['win_rate']*100:.1f}%")
-            print(f"   Profit Factor: {self.performance_metrics['profit_factor']:.2f}")
-            print(f"   Recovery Factor: {self.performance_metrics['recovery_factor']:.2f}")
+            print(f"   Day Win Rate: {self.performance_metrics.get('day_win_rate', 0.0)*100:.1f}% (n={self.performance_metrics.get('n_daily', 0)})")
+            print(f"   Day Profit Factor: {self.performance_metrics.get('day_profit_factor', 0.0):.2f}")
+            print(f"   Trade Win Rate: {self.performance_metrics.get('trade_win_rate', 0.0)*100:.1f}% (closed={self.performance_metrics.get('n_trades_closed', 0)})")
+            tpf = self.performance_metrics.get('trade_profit_factor', 0.0)
+            print(f"   Trade Profit Factor: {'∞' if tpf == float('inf') else f'{tpf:.2f}'}")
+            print(f"   Recovery Factor: {self.performance_metrics.get('recovery_factor', 0.0):.2f}")
             
-            if self.performance_metrics['correlation_matrix'] is not None:
+            if self.performance_metrics.get('correlation_matrix') is not None:
                 print("\n📐 Asset Correlations:")
                 print(self.performance_metrics['correlation_matrix'].round(2))
+            warn = self.performance_metrics.get('unstable_metrics_warning')
+            if warn:
+                print(f"\n⚠️  Warnings: {warn}")
             
         except Exception as e:
             self.logger.error(f"Error displaying advanced metrics: {e}")
+
+    def _save_backtest_results(self, results: Dict) -> None:
+        """Persist backtest results to JSON file"""
+        try:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            results_file = f"app/data/results/pure_5k_results_{timestamp}.json"
+            os.makedirs(os.path.dirname(results_file), exist_ok=True)
+            with open(results_file, 'w') as f:
+                json.dump(results, f, indent=2, default=str)
+            self.logger.info(f"Backtest results saved to {results_file}")
+        except Exception as e:
+            self.logger.warning(f"Failed to save backtest results: {e}")
 
     def run_pure_5k_backtest(self, days: int = 30) -> Dict:
         """Run complete backtest with advanced analytics"""
@@ -1521,10 +1675,14 @@ class Pure5KLiveTradingSystem:
             self.display_advanced_metrics()
             
             # Save results
+            return_percentage = ((final_value - self.initial_balance) / self.initial_balance) * 100
+            target_met = return_percentage >= 10.0  # 10% target per system banner
             results = {
                 'initial_balance': self.initial_balance,
                 'final_value': final_value,
                 'total_return': total_return,
+                'return_percentage': return_percentage,
+                'target_met': target_met,
                 'trades': self.trades,
                 'daily_values': self.daily_values,
                 'performance_metrics': self.performance_metrics
@@ -1536,7 +1694,6 @@ class Pure5KLiveTradingSystem:
             print("=" * 80)
             
             return results
-            
         except Exception as e:
             self.logger.error(f"Backtest failed: {e}")
             return {}
