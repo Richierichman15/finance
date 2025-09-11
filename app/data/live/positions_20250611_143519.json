@@ -1,0 +1,12 @@
+{
+  "ETH-USD": {
+    "shares": 0.08760102455557665,
+    "avg_price": 2853.847900390625,
+    "category": "crypto"
+  },
+  "SOL-USD": {
+    "shares": 1.4996735939919326,
+    "avg_price": 166.70294189453125,
+    "category": "crypto"
+  }
+}

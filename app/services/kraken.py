@@ -37,16 +37,16 @@ class KrakenAPI:
         self.price_cache = {}
         self.cache_expiry = 30  # 30 seconds cache for prices
         
-        # Kraken symbol mapping (their format vs our format) - CORRECTED
+        # Kraken symbol mapping (our format -> Kraken REST API format) - CORRECTED
         self.symbol_map = {
-            # Crypto pairs (our format -> Kraken format)
-            'BTC-USD': 'XXBTZUSD',  # Bitcoin (need to check if this exists)  
-            'ETH-USD': 'XETHZUSD',  # Ethereum
-            'XRP-USD': 'XXRPZUSD',  # Ripple
-            'SOL-USD': 'SOLUSD',    # Solana
-            'ADA-USD': 'ADAUSD',    # Cardano
-            'TRX-USD': 'TRXUSD',    # Tron
-            'XLM-USD': 'XXLMZUSD',  # Stellar
+            # Crypto pairs (our format -> Kraken REST API format)
+            'BTC-USD': 'XXBTZUSD',  # Bitcoin (actual Kraken pair name)
+            'ETH-USD': 'XETHZUSD',  # Ethereum (actual Kraken pair name)
+            'XRP-USD': 'XXRPZUSD',  # Ripple (actual Kraken pair name)
+            'SOL-USD': 'SOLUSD',    # Solana (actual Kraken pair name)
+            'ADA-USD': 'ADAUSD',    # Cardano (actual Kraken pair name)
+            'TRX-USD': 'TRXUSD',    # Tron (actual Kraken pair name)
+            'XLM-USD': 'XXLMZUSD',  # Stellar (actual Kraken pair name)
             
             # Reverse mapping (Kraken format -> our format)
             'XXBTZUSD': 'BTC-USD',
@@ -58,8 +58,16 @@ class KrakenAPI:
             'XXLMZUSD': 'XLM-USD'
         }
         
-        # Supported pairs on Kraken (crypto only for now)
-        self.supported_pairs = list(self.symbol_map.values())[:7]  # First 7 are Kraken format
+        # Supported pairs on Kraken (actual pair names)
+        self.supported_pairs = [
+            'XXBTZUSD',  # Bitcoin
+            'XETHZUSD',  # Ethereum
+            'XXRPZUSD',  # Ripple
+            'SOLUSD',    # Solana
+            'ADAUSD',    # Cardano
+            'TRXUSD',    # Tron
+            'XXLMZUSD'   # Stellar
+        ]
         
         logger.info(f"Kraken API initialized - {'Authenticated' if self.api_key and self.api_secret else 'Public only'}")
         logger.info(f"Supported pairs: {self.supported_pairs}")

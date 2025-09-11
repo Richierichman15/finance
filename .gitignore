@@ -7,6 +7,7 @@ venv/
 .env.development
 .env.test
 .env.production
+.DS_Store
 
 __pycache__/
 finance.db

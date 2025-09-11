@@ -1,0 +1,93 @@
+{
+  "initial_balance": 5000.0,
+  "final_value": 5088.5624562815665,
+  "total_return": 88.56245628156648,
+  "return_percentage": 1.7712491256313296,
+  "days": 3,
+  "trades": 21,
+  "target_met": false,
+  "final_cash": 1369.6657657218313,
+  "invested_value": 3718.896690559733,
+  "positions": {
+    "BTC-USD": {
+      "shares": 0.001815703657795542,
+      "avg_price": 118018.0,
+      "category": "crypto"
+    },
+    "ETH-USD": {
+      "shares": 0.058608958718936364,
+      "avg_price": 3656.19384765625,
+      "category": "crypto"
+    },
+    "SOL-USD": {
+      "shares": 2.6694822399037204,
+      "avg_price": 198.00522388584702,
+      "category": "crypto"
+    },
+    "XRP-USD": {
+      "shares": 37.587056030227096,
+      "avg_price": 3.42063045501709,
+      "category": "crypto"
+    },
+    "ADA-USD": {
+      "shares": 153.50328125267018,
+      "avg_price": 0.8375809788703918,
+      "category": "crypto"
+    },
+    "TRX-USD": {
+      "shares": 669.8677747200765,
+      "avg_price": 0.319892555475235,
+      "category": "crypto"
+    },
+    "XLM-USD": {
+      "shares": 1090.0818867868988,
+      "avg_price": 0.4703922312401815,
+      "category": "crypto"
+    },
+    "QQQ": {
+      "shares": 0.3453842844229714,
+      "avg_price": 562.98,
+      "category": "tech"
+    },
+    "NVDA": {
+      "shares": 1.1255828911400547,
+      "avg_price": 172.75,
+      "category": "tech"
+    },
+    "MSFT": {
+      "shares": 0.38203517779917173,
+      "avg_price": 508.97,
+      "category": "tech"
+    },
+    "GOOGL": {
+      "shares": 1.0427652943875394,
+      "avg_price": 186.47,
+      "category": "tech"
+    },
+    "TSLA": {
+      "shares": 0.5814900100016283,
+      "avg_price": 334.39,
+      "category": "tech"
+    },
+    "AMD": {
+      "shares": 1.2314404334670326,
+      "avg_price": 157.9,
+      "category": "tech"
+    },
+    "TSM": {
+      "shares": 0.8061544131195874,
+      "avg_price": 241.2,
+      "category": "tech"
+    },
+    "PLTR": {
+      "shares": 1.259681552503527,
+      "avg_price": 154.36,
+      "category": "tech"
+    },
+    "TTWO": {
+      "shares": 0.8345255126371006,
+      "avg_price": 233.0,
+      "category": "tech"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "initial_balance": 5000.0,
+  "final_value": 5506.809722731193,
+  "total_return": 506.8097227311928,
+  "return_percentage": 10.136194454623855,
+  "days": 30,
+  "trades": 32,
+  "target_met": true,
+  "final_cash": 1450.3888897684335,
+  "invested_value": 4056.42083296276,
+  "positions": {
+    "XXBT/ZUSD": {
+      "shares": 0.0020842287646886835,
+      "avg_price": 102812.953125,
+      "category": "crypto"
+    },
+    "XETH/ZUSD": {
+      "shares": 0.08583797118937353,
+      "avg_price": 2496.397705078125,
+      "category": "crypto"
+    },
+    "SOL/USD": {
+      "shares": 0,
+      "avg_price": 174.24789428710938,
+      "category": "crypto"
+    },
+    "XRP/USD": {
+      "shares": 0,
+      "avg_price": 2.54463791847229,
+      "category": "crypto"
+    },
+    "ADA/USD": {
+      "shares": 0,
+      "avg_price": 0.8176379799842834,
+      "category": "crypto"
+    },
+    "TRX/USD": {
+      "shares": 788.6820729847533,
+      "avg_price": 0.27170100808143616,
+      "category": "crypto"
+    },
+    "XLM/USD": {
+      "shares": 0,
+      "avg_price": 0.31275999546051025,
+      "category": "crypto"
+    },
+    "QQQ": {
+      "shares": 0.3850842564353081,
+      "avg_price": 504.94,
+      "category": "tech"
+    },
+    "NVDA": {
+      "shares": 3.557413265304329,
+      "avg_price": 132.76969248083492,
+      "category": "tech"
+    },
+    "MSFT": {
+      "shares": 0.4350376866933159,
+      "avg_price": 446.96,
+      "category": "tech"
+    },
+    "GOOGL": {
+      "shares": 1.2356662712534598,
+      "avg_price": 157.36,
+      "category": "tech"
+    },
+    "TSLA": {
+      "shares": 0,
+      "avg_price": 322.6436091337598,
+      "category": "tech"
+    },
+    "AMD": {
+      "shares": 1.7989124289429592,
+      "avg_price": 108.09,
+      "category": "tech"
+    },
+    "TSM": {
+      "shares": 1.0399211086076947,
+      "avg_price": 186.97999572753906,
+      "category": "tech"
+    },
+    "PLTR": {
+      "shares": 0,
+      "avg_price": 118.45999908447266,
+      "category": "tech"
+    },
+    "TTWO": {
+      "shares": 0.8594229588704727,
+      "avg_price": 226.25,
+      "category": "tech"
+    },
+    "PLUG": {
+      "shares": 1237.174260117117,
+      "avg_price": 0.9984570070825539,
+      "category": "energy"
+    }
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "timestamp": "2025-07-24T22:17:13.324232",
+  "quant_analysis": {
+    "portfolio_metrics": {
+      "total_value": 317.5732859687473,
+      "number_of_positions": 10,
+      "max_position_size": 46.52323108009859,
+      "hhi_concentration": 0.28563984745262233,
+      "diversification_ratio": 0.7143601525473777,
+      "crypto_allocation": 99.5182214412863,
+      "cash_allocation": 0.48177855871371017,
+      "concentration_risk": "HIGH"
+    },
+    "asset_analysis": {
+      "BONK": {
+        "annual_return": 0.8290535487375577,
+        "annual_volatility": 1.2086260628836936,
+        "sharpe_ratio": 0.6859471048965272,
+        "sortino_ratio": 1.4729270906402532,
+        "max_drawdown": -0.8148148198051834,
+        "var_5": -0.09999994543031654,
+        "beta": 0,
+        "current_allocation": 3.3305779313588024
+      },
+      "CRV": {
+        "annual_return": 1.4447827450806257,
+        "annual_volatility": 1.0207194626637999,
+        "sharpe_ratio": 1.4154552724116145,
+        "sortino_ratio": 2.5125397053077987,
+        "max_drawdown": -0.7076168463255434,
+        "var_5": -0.08488218846114834,
+        "beta": 0,
+        "current_allocation": 0.5957843230089712
+      },
+      "ETH.F": {
+        "annual_return": 0.28200737186828406,
+        "annual_volatility": 0.6212352993131066,
+        "sharpe_ratio": 0.45394614919676435,
+        "sortino_ratio": 0.7063327741318556,
+        "max_drawdown": -0.6323957203281365,
+        "var_5": -0.05747405160367192,
+        "beta": 0,
+        "current_allocation": 10.943885805480095
+      },
+      "SOL.F": {
+        "annual_return": 0.2786336574530844,
+        "annual_volatility": 0.7115786006121827,
+        "sharpe_ratio": 0.3915711591289722,
+        "sortino_ratio": 0.6406843998944496,
+        "max_drawdown": -0.5970814063900629,
+        "var_5": -0.06440407386706268,
+        "beta": 0,
+        "current_allocation": 8.737581662343597
+      },
+      "USDG.F": {
+        "annual_return": 5.026446809640739,
+        "annual_volatility": 2.8030220537681196,
+        "sharpe_ratio": 1.7932241392405943,
+        "sortino_ratio": 3.0218420848722802,
+        "max_drawdown": -0.6617063999282282,
+        "var_5": -0.2204993083383425,
+        "beta": 0,
+        "current_allocation": 46.52323108009859
+      },
+      "XTZ.F": {
+        "annual_return": 0.46444795311657944,
+        "annual_volatility": 0.9037515163749475,
+        "sharpe_ratio": 0.5139111190424711,
+        "sortino_ratio": 0.9721731680980038,
+        "max_drawdown": -0.7256943790756973,
+        "var_5": -0.07325379005064883,
+        "beta": 0,
+        "current_allocation": 2.579017177616208
+      },
+      "XXBT": {
+        "annual_return": 0.4756160162668489,
+        "annual_volatility": 0.4048729115473181,
+        "sharpe_ratio": 1.1747291624158536,
+        "sortino_ratio": 1.9023522831888198,
+        "max_drawdown": -0.2814447811620797,
+        "var_5": -0.036417561190282645,
+        "beta": 0,
+        "current_allocation": 21.32870927004636
+      },
+      "XXDG": {
+        "annual_return": 0.7532505365971942,
+        "annual_volatility": 0.8370493915123449,
+        "sharpe_ratio": 0.8998878014070991,
+        "sortino_ratio": 1.5342158478406163,
+        "max_drawdown": -0.6958957607150816,
+        "var_5": -0.08120796108704612,
+        "beta": 0,
+        "current_allocation": 4.691176474086841
+      },
+      "ZUSD": {
+        "annual_return": 0.8494549152034587,
+        "annual_volatility": 0.954221629658738,
+        "sharpe_ratio": 0.8902071476908908,
+        "sortino_ratio": 1.1876265271601878,
+        "max_drawdown": -0.6167409818439487,
+        "var_5": -0.09514986680949414,
+        "beta": 0,
+        "current_allocation": 0.48177855871371017
+      }
+    },
+    "risk_metrics": {
+      "portfolio_var_5": -0.1331626675597336,
+      "portfolio_volatility": 2.2051843643485487,
+      "risk_level": "HIGH"
+    },
+    "performance_metrics": {
+      "performance_1m": 0.37218716989045275,
+      "performance_3m": 0.6031169733389002,
+      "annualized_3m": 2.412467893355601
+    },
+    "correlation_analysis": {
+      "avg_correlation": 0.34083302949952865,
+      "highest_correlation": {
+        "asset1": "ETH.F",
+        "asset2": "XXDG",
+        "correlation": 0.823789979311769
+      },
+      "lowest_correlation": {
+        "asset1": "USDG.F",
+        "asset2": "XXBT",
+        "correlation": -0.08636551081452284
+      },
+      "diversification_benefit": "MODERATE"
+    },
+    "technical_indicators": {
+      "BONK": {
+        "sma_20": 2.856870805771905e-05,
+        "sma_50": 2.0367483211884975e-05,
+        "rsi": 61.7529261677789,
+        "momentum_20d": 70.39031684882092,
+        "trend": "BULLISH"
+      },
+      "CRV": {
+        "sma_20": 0.7636584967374802,
+        "sma_50": 0.654318038225174,
+        "rsi": 79.99549239097864,
+        "momentum_20d": 95.60560918520332,
+        "trend": "BULLISH"
+      },
+      "ETH.F": {
+        "sma_20": 3175.97890625,
+        "sma_50": 2773.88314453125,
+        "rsi": 84.32346043628941,
+        "momentum_20d": 44.014540511439534,
+        "trend": "BULLISH"
+      },
+      "SOL.F": {
+        "sma_20": 169.42451705932618,
+        "sma_50": 156.84925018310548,
+        "rsi": 60.0410583655763,
+        "momentum_20d": 21.391126135949058,
+        "trend": "BULLISH"
+      },
+      "USDG.F": {
+        "sma_20": 8.62758629322052,
+        "sma_50": 6.670745706558227,
+        "rsi": 38.64148472348928,
+        "momentum_20d": -3.3426393973976607,
+        "trend": "NEUTRAL"
+      },
+      "XTZ.F": {
+        "sma_20": 0.7128098428249359,
+        "sma_50": 0.614279156923294,
+        "rsi": 68.5881322383575,
+        "momentum_20d": 62.35089309767109,
+        "trend": "BULLISH"
+      },
+      "XXBT": {
+        "sma_20": 115872.75078125,
+        "sma_50": 110055.08515625,
+        "rsi": 50.88388610453698,
+        "momentum_20d": 7.427821421897038,
+        "trend": "BULLISH"
+      },
+      "XXDG": {
+        "sma_20": 0.2117813840508461,
+        "sma_50": 0.18770637452602387,
+        "rsi": 62.0488904128414,
+        "momentum_20d": 38.24003159621002,
+        "trend": "BULLISH"
+      },
+      "ZUSD": {
+        "sma_20": 77.93899955749512,
+        "sma_50": 66.71705581665039,
+        "rsi": 68.30893483009092,
+        "momentum_20d": 15.363319687364834,
+        "trend": "BULLISH"
+      }
+    }
+  },
+  "ai_analysis": {
+    "portfolio_overview": {
+      "total_value": 0,
+      "number_of_positions": 0,
+      "largest_position": 0,
+      "smallest_position": 0,
+      "average_position": 0,
+      "diversification_score": 0,
+      "concentration_risk": "UNKNOWN",
+      "asset_types": {
+        "crypto": 0,
+        "stablecoins": 0,
+        "other": 0
+      }
+    },
+    "technical_signals": {
+      "SOL.F": {
+        "signal": "HOLD",
+        "strength": 0.07397257142185282,
+        "risk_level": "LOW",
+        "confidence": 0.59,
+        "learning_factor": 0.8
+      }
+    },
+    "ml_predictions": {},
+    "sentiment_analysis": {},
+    "risk_assessment": {
+      "overall_risk_score": 0.75,
+      "risk_factors": [
+        {
+          "type": "HIGH_PORTFOLIO_RISK",
+          "description": "Portfolio shows elevated risk levels across multiple assets",
+          "severity": "HIGH"
+        }
+      ],
+      "risk_metrics": {
+        "assets": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "total_value_usd": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "fetch_timestamp": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "data_source": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "failed_assets": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "successful_mappings": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        }
+      },
+      "sentiment_risks": []
+    },
+    "recommendations": [],
+    "analysis_metadata": {
+      "timestamp": "2025-07-24T22:17:13.324240",
+      "model_versions": {
+        "price_predictor": "GradientBoostingRegressor(max_depth=5)",
+        "trend_classifier": "RandomForestClassifier(max_depth=5, random_state=42)",
+        "risk_analyzer": "GradientBoostingRegressor(max_depth=4)"
+      },
+      "success_rate": 1.6666666666666667
+    }
+  },
+  "llm_insights": {
+    "risk_analysis": "1. Immediate Risk Factors:\n- High volatility: This indicates that the portfolio is exposed to sudden fluctuations in asset prices, which can lead to severe losses for the investor. The portfolio's average monthly volatility of 2.2051843643485487 shows a high level of volatility that requires immediate attention and mitigation strategies.\n- High correlation: This indicates that assets in the portfolio have a strong relationship with each other, which can lead to significant losses for investors when one asset or group of assets performs poorly. The portfolio's correlation coefficient of 0.3257156394568868 shows high correlations between assets that need immediate attention and mitigation strategies.\n- Short position in a few assets: This indicates that the portfolio has taken on too many short positions, which can lead to significant losses for investors. The portfolio's weighted average correlation of 0.1331626675597336 shows that the short positions are overweighted compared to other assets in the portfolio.\n- Unrealistic expectations: This indicates that investors may be expecting too much from the portfolio or that it's being priced incorrectly. The portfolio's average monthly return of 0.00 shows that the expected returns are not sustainable, and immediate action should be taken to reduce these unrealistic expectations.\n\n2. Potential Market Risk:\n- High interest rates: This indicates that investors may be assuming that interest rates will remain low or stay stable. The portfolio's 10-year Treasury yield of 1.69% shows that this assumption is not realistic, and immediate action should be taken to adjust the expected returns.\n- High volatility: This indicates that investors may be assuming high levels of volatility, which can lead to significant losses for investors when one asset or group of assets performs poorly. The portfolio's monthly volatility of 2.45% shows high levels of volatility that require immediate attention and mitigation strategies.\n- Overreliance on a few assets: This indicates that investors may be overlooking other assets in the portfolio, which can lead to significant losses for investors when one asset or group of assets performs poorly. The portfolio's weighted average correlation of 0.3257156394568868 shows high correlations between several assets that need immediate attention and mitigation strategies.\n- Unrealistic expectations: This indicates that investors may be expecting too much from the portfolio or that it's being priced incorrectly. The portfolio's average monthly return of 0.00 shows that the expected returns are not sustainable, and immediate action should be taken to reduce these unrealistic expectations.\n\n3. Concerns for Specific Actions:\n- High short positions: This indicates that investors may have taken on too many short positions, which can lead to significant losses for investors when one asset or group of assets performs poorly. The portfolio's weighted average correlation of 0.1331626675597336 shows that the short positions are overweighted compared to other assets in the portfolio, which requires immediate attention and mitigation strategies.\n- High unrealistic expectations: This indicates that investors may be expecting too much from the portfolio or that it's being priced incorrectly. The portfolio's average monthly return of 0.00 shows that the expected returns are not sustainable, and immediate action should be taken to reduce these unrealistic expectations.\n- High volatility: This indicates that investors may be assuming high levels of volatility, which can lead to significant losses for investors when one asset or group of assets performs poorly. The portfolio's monthly volatility of 2.45% shows high levels of volatility that require immediate attention and mitigation strategies.\n- High correlation: This indicates that assets in the portfolio have a strong relationship with each other, which can lead to significant losses for investors when one asset or group of assets performs poorly. The portfolio's correlation coefficient of 0.3257156394568868 shows high correlations between several assets that need immediate attention and mitigation strategies.",
+    "opportunity_analysis": "Based on the portfolio's summary, it appears that the focus of this portfolio is identifying high-conviction opportunities backed by data. Specifically, these opportunities could be considered market trends supporting specific entry points or conditions. To identify potential position sizing recommendations for this portfolio, the AI signals would likely highlight the following:\n\n1. High-conviction opportunities: Assets in this portfolio that are exhibiting strong fundamentals and/or supportive factors for a potential move upwards. These assets may be considered \"market trends\" because they have been seen as consistent performers amidst market uncertainty or volatility.\n\n2. Market trends supporting specific entry points or conditions: These assets could potentially be identified based on price action, sentiment indicators, and/or technical analysis. For example, if the portfolio is invested in stocks that have been experiencing strong uptrends, but are still below their 10-day moving average, a potential entry point might be near the top of this range.\n\n3. Specific entry points or conditions: These assets could potentially represent entry points for profitable trades, based on a combination of factors such as price momentum, volume, and/or technical analysis. For example, if the portfolio is invested in stocks that have been experiencing strong uptrends and are above their 50-day moving average, but are still below their 200-day moving average, a potential entry point might be near their 200-day moving average.\n\nOverall, the focus of this portfolio could include identifying high-conviction opportunities, market trends supporting specific entry points or conditions, and specific entry points or conditions that align with the portfolio's overall investment strategy.",
+    "strategy_recommendations": "Provide strategic portfolio recommendation based on the current metrics, risk level, and asset allocations as follows:\n\n1. Portfolio RebalaNCing Needs:\na) High overall portfolio risk detected: Based on the current metrics, portfolio rebalaNCing needs to be taken. The allocation of assets is excessive for a moderate risk level, with a concentration of 79.5% in cryptocurrencies and hedge funds. This suggests that the portfolio may be heavily invested in these asset classes.\nb) Opportunity signal: Asset allocation strategy: Due to the high concentration in cryptocurrency assets, this portfolio needs to be diversified across various asset classes, including stocks, bonds, and real estate. This will help reduce overall risk levels.\nc) Technical Signals: Market timing consideration: In the current market environment, it may be advisable to consider a wait-and-watch approach for some time until the market recovers and prices stabilize.\n\n2. Asset Allocation Strategies:\na) Risky Asset Allocations:\n1. Cryptocurrencies: Portfolio allocation should be adjusted towards stocks, bonds, and real estate, with a weightage of 70%, 25%, and 10% respectively. These assets are expected to perform well in the short-term under current market conditions.\nb) Non-Crypto Asset Allocations:\n1. Stock Market: Portfolio allocation should be adjusted towards stocks with a weightage of 70%. This asset class is expected to provide long-term returns due to their stability and predictability.\nc) Bond Market: Portfolio allocation should be adjusted towards bonds with a weightage of 25%. This asset class provides a stable source of income in the event of market volatility.\nd) Real Estate: Portfolio allocation should be adjusted towards real estate with a weightage of 10%. This asset class is expected to provide long-term capital appreciation due to its strong demand and low supply.\n\n3. Risky Timing Considerations:\na) Wait-and-Watch Approach: In the current market environment, it may be advisable to wait for a period of stability before making any investment decisions. This approach will help reduce overall risk levels and enable a more strategic decision-making process.\nb) Diversification: Asset allocation strategy should be adjusted towards diversifying the portfolio across various asset classes, including stocks, bonds, and real estate, to mitigate risks.\nc) Market Timing: Investors should carefully monitor the market conditions and make investment decisions based on their individual risk tolerance levels. This approach will help reduce overall risks associated with investments in volatile markets.\n\nOverall, a portfolio that is well-diversified across various asset classes, including stocks, bonds, and real estate, with a focus on high-risk assets will provide the most stable and long-term returns."
+  },
+  "recommendations": [],
+  "metadata": {
+    "version": "2.0",
+    "analysis_type": "enhanced",
+    "components": [
+      "quant",
+      "ai",
+      "llm"
+    ]
+  }
+}

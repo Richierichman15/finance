@@ -4,6 +4,53 @@ import json
 from typing import Dict, List, Any, Optional
 import httpx
 
+# Global ollama service instance
+_ollama_service = None
+
+async def get_ollama_response(prompt_data: Dict) -> str:
+    """Get response from Ollama using global service instance"""
+    global _ollama_service
+    
+    try:
+        # Initialize service if needed
+        if _ollama_service is None:
+            _ollama_service = OllamaService()
+            await _ollama_service.initialize()
+        
+        # Extract prompt components
+        prompt = prompt_data.get('prompt', '')
+        prompt_type = prompt_data.get('type', 'general')
+        
+        # Add type-specific system prompts
+        system_prompts = {
+            'risk_analysis': """You are a professional crypto risk analyst. 
+                              Focus on identifying and quantifying risks, providing specific mitigation strategies.""",
+            
+            'opportunity_analysis': """You are a professional crypto market analyst.
+                                     Focus on identifying high-conviction opportunities backed by data.""",
+            
+            'strategy_recommendations': """You are a professional portfolio strategist.
+                                         Focus on actionable recommendations with clear rationale.""",
+            
+            'general': """You are a professional crypto market analyst.
+                         Provide clear, concise, and actionable insights."""
+        }
+        
+        system_prompt = system_prompts.get(prompt_type, system_prompts['general'])
+        
+        # Generate response
+        response = await _ollama_service.generate_response(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            temperature=0.7
+        )
+        
+        return response
+        
+    except Exception as e:
+        print(f"⚠️  Error getting Ollama response: {e}")
+        return "Error: Could not generate AI response. Please check Ollama service."
+
 class OllamaService:
     def __init__(self, model_name: str = "llama2", host: str = "http://localhost:11434"):
         self.model_name = model_name
