@@ -1365,86 +1365,181 @@ class Pure5KLiveTradingSystem:
         
         print("📊 Live monitoring stopped - all data saved")
 
-    def run_pure_5k_backtest(self, days: int = 30) -> Dict:
-        """Run backtest simulation for specified number of days"""
+    def calculate_advanced_metrics(self) -> Dict:
+        """Calculate advanced performance metrics"""
         try:
-            print(f"\n🚀 Starting Pure $5K backtest simulation - {days} days")
-            print("\n💰 INITIAL PORTFOLIO ALLOCATION:")
-            print(f"🪙 Crypto: {self.crypto_allocation:.0%}")
-            print(f"💻 Tech: {self.tech_allocation:.0%}")
-            print(f"⚡ Energy: {self.energy_allocation:.0%}")
-            print(f"📈 ETFs: {self.etf_allocation:.0%}")
+            self.logger.info("Calculating advanced performance metrics...")
+            
+            # Calculate daily returns
+            portfolio_values = pd.Series(self.daily_values)
+            daily_returns = portfolio_values.pct_change().dropna()
+            self.performance_metrics['daily_returns'] = daily_returns
+            
+            # Calculate cumulative returns
+            cumulative_returns = (1 + daily_returns).cumprod()
+            self.performance_metrics['cumulative_returns'] = cumulative_returns
+            
+            # 1. Sharpe Ratio
+            risk_free_rate = 0.04  # 4% annual risk-free rate
+            avg_return = daily_returns.mean() * 252
+            std_dev = daily_returns.std() * np.sqrt(252)
+            self.performance_metrics['sharpe_ratio'] = (avg_return - risk_free_rate) / std_dev if std_dev > 0 else 0
+            
+            # 2. Sortino Ratio
+            downside_returns = daily_returns[daily_returns < 0]
+            downside_std = np.sqrt(np.mean(downside_returns ** 2)) * np.sqrt(252)
+            self.performance_metrics['sortino_ratio'] = (avg_return - risk_free_rate) / downside_std if downside_std > 0 else 0
+            
+            # 3. Maximum Drawdown
+            rolling_max = cumulative_returns.expanding().max()
+            drawdowns = cumulative_returns / rolling_max - 1
+            self.performance_metrics['max_drawdown'] = float(drawdowns.min())
+            
+            # 4. Win Rate
+            winning_days = len(daily_returns[daily_returns > 0])
+            total_days = len(daily_returns)
+            self.performance_metrics['win_rate'] = winning_days / total_days if total_days > 0 else 0
+            
+            # 5. Profit Factor
+            gains = daily_returns[daily_returns > 0].sum()
+            losses = abs(daily_returns[daily_returns < 0].sum())
+            self.performance_metrics['profit_factor'] = gains / losses if losses != 0 else 0
+            
+            # 6. Recovery Factor
+            total_return = cumulative_returns.iloc[-1] - 1
+            max_dd = abs(self.performance_metrics['max_drawdown'])
+            self.performance_metrics['recovery_factor'] = total_return / max_dd if max_dd != 0 else 0
+            
+            # 7. Risk-Adjusted Return
+            downside_risk = downside_returns.std() * np.sqrt(252)
+            self.performance_metrics['risk_adjusted_return'] = avg_return / downside_risk if downside_risk != 0 else 0
+            
+            # 8. Alpha & Beta vs BTC
+            try:
+                btc_data = yf.download('BTC-USD', start=portfolio_values.index[0], end=portfolio_values.index[-1])
+                btc_returns = btc_data['Close'].pct_change().dropna()
+                
+                # Calculate beta
+                covariance = daily_returns.cov(btc_returns)
+                market_variance = btc_returns.var()
+                beta = covariance / market_variance if market_variance != 0 else 0
+                self.performance_metrics['beta'] = beta
+                
+                # Calculate alpha
+                market_return = btc_returns.mean() * 252
+                alpha = avg_return - (risk_free_rate + beta * (market_return - risk_free_rate))
+                self.performance_metrics['alpha'] = alpha
+                
+            except Exception as e:
+                self.logger.warning(f"Could not calculate alpha/beta: {e}")
+            
+            # 9. Asset Correlations
+            returns_df = pd.DataFrame()
+            for symbol in self.positions.keys():
+                try:
+                    price_data = self.historical_data_cache[symbol]['data']['Close']
+                    returns_df[symbol] = price_data.pct_change()
+                except:
+                    continue
+            
+            if not returns_df.empty:
+                self.performance_metrics['correlation_matrix'] = returns_df.corr()
+            
+            return self.performance_metrics
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating advanced metrics: {e}")
+            return self.performance_metrics
+
+    def display_advanced_metrics(self):
+        """Display advanced performance metrics"""
+        try:
+            print("\n=== ADVANCED PERFORMANCE METRICS ===")
+            print("-" * 40)
+            
+            print(f"\n📈 Risk-Adjusted Returns:")
+            print(f"   Sharpe Ratio: {self.performance_metrics['sharpe_ratio']:.2f}")
+            print(f"   Sortino Ratio: {self.performance_metrics['sortino_ratio']:.2f}")
+            print(f"   Risk-Adjusted Return: {self.performance_metrics['risk_adjusted_return']:.2f}")
+            
+            print(f"\n📊 Risk Metrics:")
+            print(f"   Maximum Drawdown: {self.performance_metrics['max_drawdown']*100:.1f}%")
+            print(f"   Beta vs BTC: {self.performance_metrics['beta']:.2f}")
+            print(f"   Alpha (annualized): {self.performance_metrics['alpha']*100:.1f}%")
+            
+            print(f"\n🎯 Trading Metrics:")
+            print(f"   Win Rate: {self.performance_metrics['win_rate']*100:.1f}%")
+            print(f"   Profit Factor: {self.performance_metrics['profit_factor']:.2f}")
+            print(f"   Recovery Factor: {self.performance_metrics['recovery_factor']:.2f}")
+            
+            if self.performance_metrics['correlation_matrix'] is not None:
+                print("\n📐 Asset Correlations:")
+                print(self.performance_metrics['correlation_matrix'].round(2))
+            
+        except Exception as e:
+            self.logger.error(f"Error displaying advanced metrics: {e}")
+
+    def run_pure_5k_backtest(self, days: int = 30) -> Dict:
+        """Run complete backtest with advanced analytics"""
+        try:
+            print(f"\n🚀 Running Pure $5K Trading System Backtest ({days} days)")
+            print("=" * 80)
             
             # Cache historical data
-            self.cache_historical_data(days=days)
+            self.cache_historical_data(days)
             
-            # Generate date range for simulation
-            end_date = datetime.now(self.utc)
+            # Generate date range
+            end_date = datetime.now(pytz.UTC)
             start_date = end_date - timedelta(days=days)
-            date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+            date_range = pd.date_range(start=start_date, end=end_date, freq='B')
             
-            # Run simulation for each day
+            # Run simulation
             for i, date in enumerate(date_range):
                 date_str = date.strftime('%Y-%m-%d')
                 self.simulate_pure_trading_day(date_str, is_first_day=(i==0))
-            
-            # Calculate final results using last VALID trading day
-            last_valid_date = None
-            for date in reversed(date_range):
-                test_price = self.get_price_from_cache('BTC-USD', date.strftime('%Y-%m-%d'))
-                if test_price > 0:
-                    last_valid_date = date
-                    break
-            
-            if not last_valid_date:
-                last_valid_date = date_range[-2]  # Use second to last day if no valid date found
                 
-            final_date_str = last_valid_date.strftime('%Y-%m-%d')
-            final_value = self.calculate_portfolio_value(final_date_str)
-            total_return = final_value - self.initial_balance
-            return_percentage = (total_return / self.initial_balance) * 100
+                # Record daily portfolio value
+                portfolio_value = self.calculate_portfolio_value(date_str)
+                self.daily_values.append(portfolio_value)
             
-            # Generate final position breakdown using last valid date
-            print("\n📊 FINAL POSITION BREAKDOWN:")
-            total_position_value = 0.0
-            for symbol, position in self.positions.items():
-                if position['shares'] > 0:
-                    current_price = self.get_price_from_cache(symbol, final_date_str)
-                    position_value = position['shares'] * current_price
-                    position_return = ((current_price - position['avg_price']) / position['avg_price']) * 100
-                    total_position_value += position_value
-                    print(f"   {symbol}: {position['shares']:.6f} shares @ ${current_price:.4f} = ${position_value:.2f} ({position_return:+.1f}%)")
+            # Calculate final results
+            final_value = self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d'))
+            total_return = ((final_value - self.initial_balance) / self.initial_balance) * 100
             
-            print("\n📈 TRADING STATISTICS:")
-            print(f"   Total Trades: {len(self.trades)}")
-            print(f"   Initial Balance: ${self.initial_balance:,.2f}")
-            print(f"   Final Value: ${final_value:,.2f}")
-            print(f"   Total Return: ${total_return:+,.2f} ({return_percentage:+.2f}%)")
-            print(f"   Available Cash: ${self.cash:,.2f}")
-            print(f"   Invested Value: ${total_position_value:.2f}")
-            print(f"   Cash + Invested: ${(self.cash + total_position_value):.2f}")
+            # Calculate advanced metrics
+            self.calculate_advanced_metrics()
             
+            # Display results
+            print("\n📊 BACKTEST RESULTS:")
+            print("-" * 40)
+            print(f"Initial Balance: ${self.initial_balance:,.2f}")
+            print(f"Final Value: ${final_value:,.2f}")
+            print(f"Total Return: {total_return:+.1f}%")
+            print(f"Number of Trades: {len(self.trades)}")
+            
+            # Display advanced metrics
+            self.display_advanced_metrics()
+            
+            # Save results
             results = {
                 'initial_balance': self.initial_balance,
                 'final_value': final_value,
                 'total_return': total_return,
-                'return_percentage': return_percentage,
-                'days': days,
-                'trades': len(self.trades),
-                'target_met': return_percentage >= 10.0,
-                'final_cash': self.cash,
-                'invested_value': total_position_value,
-                'positions': self.positions
+                'trades': self.trades,
+                'daily_values': self.daily_values,
+                'performance_metrics': self.performance_metrics
             }
+            
+            self._save_backtest_results(results)
+            
+            print("\n✅ Backtest completed successfully!")
+            print("=" * 80)
             
             return results
             
         except Exception as e:
-            import traceback
-            return {
-                'error': str(e),
-                'traceback': traceback.format_exc()
-            }
+            self.logger.error(f"Backtest failed: {e}")
+            return {}
 
 def main():
     """Main execution function"""

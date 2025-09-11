@@ -92,45 +92,72 @@ class FinancialAdvisor:
         - Question: {question}
         
         MARKET CONTEXT:
-        - Current News Sentiment: {market_context.get('sentiment', {}).get('overall_sentiment', 'neutral')}
-        - Key Market Factors: {market_context.get('news', [])[:3] if market_context.get('news') else 'No recent news'}
+        - Overall Sentiment: {market_context.get('sentiment', {}).get('overall_sentiment', 'neutral')}
+        - Sentiment Details: {json.dumps(market_context.get('sentiment', {}), default=str) if market_context.get('sentiment') else 'N/A'}
+        - Top Headlines: {[h.get('title') for h in (market_context.get('news') or [])[:5]] if market_context.get('news') else 'No recent news'}
         
-        As the ELITE financial advisor, provide aggressive but smart advice for maximizing profits.
-        Focus on actionable strategies that can turn this portfolio into a MONEY MACHINE!
-        
-        Consider:
-        1. Immediate profit opportunities
-        2. Strategic moves for maximum gains
-        3. Risk management (but we're here to make MONEY!)
-        4. Timeline for seeing results
-        
-        Be specific, confident, and profit-focused!
+        INSTRUCTIONS (STRICT):
+        - Do NOT repeat the same point. Each item must be unique.
+        - Always tie advice to the provided news headlines and/or market sentiment. Explicitly reference the context (e.g., if housing is hot, mention REITs; if tech is trending, mention AI or semiconductors).
+        - Be specific: name sectors/industries/examples (e.g., cloud computing, biotech, renewable energy) instead of generic labels.
+        - Include a timeframe for each item: short-term (1–3 months), mid-term (6–12 months), or long-term (1–3 years).
+        - Balance risk with action: include a clear risk management step (stop-loss, position sizing, diversification) for each item.
+        - Structure the output as 5–6 bullet items maximum. Each item must include: Opportunity, Reasoning (tied to news/sentiment), Suggested timeframe, Risk management.
+        - Tone: elite, confident, precise, and action-oriented. Avoid filler.
         """
         
         response = await self.ollama.generate_structured_response(
             prompt=prompt,
             system_prompt=self.personality,
             response_format={
-                "response": "detailed advice text",
-                "confidence": "confidence level 1-100",
-                "actions": ["list", "of", "action", "items"],
-                "profit_timeline": "expected timeline for gains"
+                "advice": [
+                    {
+                        "opportunity": "string",
+                        "reasoning": "ties to specific headlines/sentiment",
+                        "timeframe": "short-term | mid-term | long-term",
+                        "risk_management": "specific action (stop-loss %, position size %, diversification guideline)"
+                    }
+                ],
+                "confidence": "1-100",
+                "summary": "one-paragraph elite summary tying items to context"
             }
         )
         
         # Ensure we have fallback values
         if response.get("structured", True):
+            items = response.get("advice") or []
+            # Keep max 6 unique items
+            unique_seen = set()
+            deduped = []
+            for it in items:
+                key = (it.get("opportunity", "").strip().lower(), it.get("timeframe", "").strip().lower())
+                if key not in unique_seen and it.get("opportunity"):
+                    unique_seen.add(key)
+                    deduped.append(it)
+                if len(deduped) >= 6:
+                    break
+            # Convert structured items into string action items for API schema compatibility
+            action_strings = []
+            for it in deduped:
+                opp = it.get("opportunity", "").strip()
+                rea = it.get("reasoning", "").strip()
+                tfr = it.get("timeframe", "").strip()
+                risk = it.get("risk_management", "").strip()
+                if opp:
+                    action_strings.append(f"Opportunity: {opp} | Reason: {rea} | Timeframe: {tfr} | Risk: {risk}")
             return {
-                "response": response.get("response", "Ready to make some serious money! Let's discuss your specific situation."),
+                "response": response.get("summary") or "Elite plan prepared. See structured items.",
                 "confidence": response.get("confidence", 85),
-                "actions": response.get("actions", ["Review portfolio allocation", "Monitor market opportunities"]),
-                "profit_timeline": response.get("profit_timeline", "3-6 months for significant gains")
+                "actions": action_strings,
+                "profit_timeline": "Item-specific (see timeframes)"
             }
         else:
             return {
-                "response": response.get("response", "Let's make some money! I need to analyze your situation more."),
+                "response": response.get("response", "Elite plan: pursue 5–6 unique, context-tied opportunities with defined timeframes and risk controls."),
                 "confidence": 80,
-                "actions": ["Analyze current holdings", "Identify profit opportunities", "Execute strategic moves"],
+                "actions": [
+                    "Opportunity: Momentum in AI/semiconductors via QQQ/VGT | Reason: Tech leadership per sentiment/news | Timeframe: short-term | Risk: 5–8% stop-loss; max 10% position"
+                ],
                 "profit_timeline": "Short to medium term"
             }
 
@@ -141,33 +168,66 @@ class FinancialAdvisor:
         PORTFOLIO ANALYSIS:
         {json.dumps(portfolio_analysis, indent=2)}
         
-        Based on this analysis, provide AGGRESSIVE optimization recommendations:
-        
-        1. What immediate moves should we make for maximum profit?
-        2. Which sectors are we missing for explosive growth?
-        3. Any rebalancing needed to maximize gains?
-        4. Risk assessment - are we being aggressive enough?
-        5. Profit potential over next 6-12 months
-        
-        Remember: We're here to make BANK, not play it safe!
+        Produce AGGRESSIVE optimization recommendations following these strict rules:
+        - Do NOT repeat the same point. Each item must be unique.
+        - Tie each recommendation to current market context if provided (news/sentiment) and/or metrics in the analysis.
+        - Be specific (name industries/sectors/examples).
+        - Include a timeframe per item: short-term (1–3m), mid-term (6–12m), long-term (1–3y).
+        - Include a concrete risk management step per item (stop-loss %, position sizing %, diversification rule).
+        - Output 5–6 bullet items MAX, each with: Opportunity, Reasoning, Suggested timeframe, Risk management.
+        - Tone: elite, confident, precise.
         """
         
         response = await self.ollama.generate_structured_response(
             prompt=prompt,
             system_prompt=self.personality,
             response_format={
-                "recommendations": ["list of specific recommendations"],
+                "recommendations": [
+                    {
+                        "opportunity": "string",
+                        "reasoning": "ties to portfolio/market context",
+                        "timeframe": "short-term | mid-term | long-term",
+                        "risk_management": "specific control"
+                    }
+                ],
                 "risk_assessment": "risk analysis with profit focus",
                 "profit_potential": "potential gains assessment",
                 "immediate_actions": ["urgent moves to make"]
             }
         )
         
-        return response if response.get("structured", True) else {
-            "recommendations": ["Optimize for maximum growth", "Increase aggressive allocations"],
-            "risk_assessment": "Calculated risks for maximum profits",
-            "profit_potential": "High profit potential with proper execution"
-        }
+        if response.get("structured", True):
+            # Deduplicate and cap at 6 items
+            recs = response.get("recommendations") or []
+            unique = []
+            seen = set()
+            for r in recs:
+                key = (r.get("opportunity", "").strip().lower(), r.get("timeframe", "").strip().lower())
+                if key not in seen and r.get("opportunity"):
+                    seen.add(key)
+                    unique.append(r)
+                if len(unique) >= 6:
+                    break
+            # Convert to string recommendations for API schema
+            rec_strings = []
+            for r in unique:
+                opp = r.get("opportunity", "").strip()
+                rea = r.get("reasoning", "").strip()
+                tfr = r.get("timeframe", "").strip()
+                risk = r.get("risk_management", "").strip()
+                if opp:
+                    rec_strings.append(f"Opportunity: {opp} | Reason: {rea} | Timeframe: {tfr} | Risk: {risk}")
+            response["recommendations"] = rec_strings
+            return response
+        else:
+            return {
+                "recommendations": [
+                    "Opportunity: Rebalance toward tech momentum (AI/cloud/semis) | Reason: Leadership in growth sectors per analysis | Timeframe: short-term | Risk: 5% stop; 10% position cap"
+                ],
+                "risk_assessment": "Calculated risks aligned with aggressive growth",
+                "profit_potential": "High with disciplined execution",
+                "immediate_actions": ["Implement rebalancing", "Set risk controls"]
+            }
 
     async def comment_on_rebalancing(self, rebalance_plan: Dict[str, Any]) -> str:
         """Provide AI commentary on rebalancing recommendations"""

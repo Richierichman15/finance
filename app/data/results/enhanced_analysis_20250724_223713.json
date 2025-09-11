@@ -1,0 +1,291 @@
+{
+  "timestamp": "2025-07-24T22:36:22.481556",
+  "quant_analysis": {
+    "portfolio_metrics": {
+      "total_value": 190.1920514335306,
+      "number_of_positions": 10,
+      "max_position_size": 35.42007908020808,
+      "hhi_concentration": 0.20318780885829468,
+      "diversification_ratio": 0.7968121911417053,
+      "crypto_allocation": 99.19554997778931,
+      "cash_allocation": 0.804450022210688,
+      "concentration_risk": "MODERATE"
+    },
+    "asset_analysis": {
+      "BONK": {
+        "annual_return": 0.8266407292972,
+        "annual_volatility": 1.2087318482212643,
+        "sharpe_ratio": 0.683890914691841,
+        "sortino_ratio": 1.4692533718179928,
+        "max_drawdown": -0.8148148198051834,
+        "var_5": -0.09999994543031654,
+        "beta": 0,
+        "current_allocation": 5.581121212417592
+      },
+      "CRV": {
+        "annual_return": 1.446244491586049,
+        "annual_volatility": 1.0207711865777853,
+        "sharpe_ratio": 1.4168155514211722,
+        "sortino_ratio": 2.515081745726316,
+        "max_drawdown": -0.7076168463255434,
+        "var_5": -0.08488218846114834,
+        "beta": 0,
+        "current_allocation": 0.998828335678122
+      },
+      "ETH.F": {
+        "annual_return": 0.2745402030818115,
+        "annual_volatility": 0.6213283945201906,
+        "sharpe_ratio": 0.4418600622522975,
+        "sortino_ratio": 0.6889449949428635,
+        "max_drawdown": -0.6323957203281365,
+        "var_5": -0.05747405160367192,
+        "beta": 0,
+        "current_allocation": 18.119804962552422
+      },
+      "SOL.F": {
+        "annual_return": 0.2750061703895876,
+        "annual_volatility": 0.7118758512808853,
+        "sharpe_ratio": 0.386311981077552,
+        "sortino_ratio": 0.6317112076609979,
+        "max_drawdown": -0.5970814063900629,
+        "var_5": -0.06440407386706268,
+        "beta": 0,
+        "current_allocation": 14.509094453501866
+      },
+      "USDG.F": {
+        "annual_return": 5.02765788211545,
+        "annual_volatility": 2.803125695651297,
+        "sharpe_ratio": 1.7935898807232367,
+        "sortino_ratio": 3.0225701677328987,
+        "max_drawdown": -0.6617063999282282,
+        "var_5": -0.2204993083383425,
+        "beta": 0,
+        "current_allocation": 11.173700120389675
+      },
+      "XTZ.F": {
+        "annual_return": 0.46022423435627713,
+        "annual_volatility": 0.9039050323710297,
+        "sharpe_ratio": 0.5091510920666795,
+        "sortino_ratio": 0.9634245802817276,
+        "max_drawdown": -0.7256943790756973,
+        "var_5": -0.07325379005064883,
+        "beta": 0,
+        "current_allocation": 4.284283007550193
+      },
+      "XXBT": {
+        "annual_return": 0.47057240105957926,
+        "annual_volatility": 0.4052030763318931,
+        "sharpe_ratio": 1.1613248480723368,
+        "sortino_ratio": 1.8797262596233586,
+        "max_drawdown": -0.2814447811620797,
+        "var_5": -0.036417561190282645,
+        "beta": 0,
+        "current_allocation": 35.42007908020808
+      },
+      "XXDG": {
+        "annual_return": 0.7454804617103137,
+        "annual_volatility": 0.8376585428283381,
+        "sharpe_ratio": 0.8899574511509345,
+        "sortino_ratio": 1.5156477517720097,
+        "max_drawdown": -0.6958957607150816,
+        "var_5": -0.08120796108704612,
+        "beta": 0,
+        "current_allocation": 7.79244503414552
+      },
+      "ZUSD": {
+        "annual_return": 0.8494549087766742,
+        "annual_volatility": 0.9542216259446252,
+        "sharpe_ratio": 0.8902071444207336,
+        "sortino_ratio": 1.187626538491688,
+        "max_drawdown": -0.6167409818439487,
+        "var_5": -0.09514992532044549,
+        "beta": 0,
+        "current_allocation": 0.804450022210688
+      }
+    },
+    "risk_metrics": {
+      "portfolio_var_5": -0.06309026952272251,
+      "portfolio_volatility": 0.9355514230838549,
+      "risk_level": "HIGH"
+    },
+    "performance_metrics": {
+      "performance_1m": 0.33284202611100044,
+      "performance_3m": 0.4624052621656757,
+      "annualized_3m": 1.8496210486627027
+    },
+    "correlation_analysis": {
+      "avg_correlation": 0.3404781324436583,
+      "highest_correlation": {
+        "asset1": "ETH.F",
+        "asset2": "XXDG",
+        "correlation": 0.8254729159993979
+      },
+      "lowest_correlation": {
+        "asset1": "USDG.F",
+        "asset2": "XXBT",
+        "correlation": -0.09025704592236126
+      },
+      "diversification_benefit": "MODERATE"
+    },
+    "technical_indicators": {
+      "BONK": {
+        "sma_20": 2.856278324543382e-05,
+        "sma_50": 2.036511328697088e-05,
+        "rsi": 61.54820871647148,
+        "momentum_20d": 69.76665237004757,
+        "trend": "BULLISH"
+      },
+      "CRV": {
+        "sma_20": 0.7637574523687363,
+        "sma_50": 0.6543576204776764,
+        "rsi": 80.05861928211337,
+        "momentum_20d": 96.00246114187804,
+        "trend": "BULLISH"
+      },
+      "ETH.F": {
+        "sma_20": 3173.7145874023436,
+        "sma_50": 2772.9774169921875,
+        "rsi": 80.58653451948521,
+        "momentum_20d": 42.215520282221156,
+        "trend": "BULLISH"
+      },
+      "SOL.F": {
+        "sma_20": 169.37485961914064,
+        "sma_50": 156.82938720703126,
+        "rsi": 59.261456650516955,
+        "momentum_20d": 20.718449993437254,
+        "trend": "BULLISH"
+      },
+      "USDG.F": {
+        "sma_20": 8.627930188179016,
+        "sma_50": 6.670883264541626,
+        "rsi": 38.670608421501136,
+        "momentum_20d": -3.247024428219302,
+        "trend": "NEUTRAL"
+      },
+      "XTZ.F": {
+        "sma_20": 0.7125413477420807,
+        "sma_50": 0.614171758890152,
+        "rsi": 68.07384272329229,
+        "momentum_20d": 61.33200017280873,
+        "trend": "BULLISH"
+      },
+      "XXBT": {
+        "sma_20": 115829.49296875,
+        "sma_50": 110037.78203125,
+        "rsi": 48.276698097013494,
+        "momentum_20d": 6.628461891216508,
+        "trend": "NEUTRAL"
+      },
+      "XXDG": {
+        "sma_20": 0.2116374686360359,
+        "sma_50": 0.18764880836009978,
+        "rsi": 60.74433490695215,
+        "momentum_20d": 36.48787153462861,
+        "trend": "BULLISH"
+      },
+      "ZUSD": {
+        "sma_20": 77.93899955749512,
+        "sma_50": 66.71705581665039,
+        "rsi": 68.30893483009092,
+        "momentum_20d": 15.363319687364834,
+        "trend": "BULLISH"
+      }
+    }
+  },
+  "ai_analysis": {
+    "portfolio_overview": {
+      "total_value": 0,
+      "number_of_positions": 0,
+      "largest_position": 0,
+      "smallest_position": 0,
+      "average_position": 0,
+      "diversification_score": 0,
+      "concentration_risk": "UNKNOWN",
+      "asset_types": {
+        "crypto": 0,
+        "stablecoins": 0,
+        "other": 0
+      }
+    },
+    "technical_signals": {
+      "SOL.F": {
+        "signal": "HOLD",
+        "strength": 0.07397257142185282,
+        "risk_level": "LOW",
+        "confidence": 0.59,
+        "learning_factor": 0.8
+      }
+    },
+    "ml_predictions": {},
+    "sentiment_analysis": {},
+    "risk_assessment": {
+      "overall_risk_score": 0.75,
+      "risk_factors": [
+        {
+          "type": "HIGH_PORTFOLIO_RISK",
+          "description": "Portfolio shows elevated risk levels across multiple assets",
+          "severity": "HIGH"
+        }
+      ],
+      "risk_metrics": {
+        "assets": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "total_value_usd": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "fetch_timestamp": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "data_source": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "failed_assets": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        },
+        "successful_mappings": {
+          "ml_risk_score": 0.5,
+          "sentiment_risk": 1,
+          "combined_risk": 0.75
+        }
+      },
+      "sentiment_risks": []
+    },
+    "recommendations": [],
+    "analysis_metadata": {
+      "timestamp": "2025-07-24T22:36:22.481563",
+      "model_versions": {
+        "price_predictor": "GradientBoostingRegressor(max_depth=5)",
+        "trend_classifier": "RandomForestClassifier(max_depth=5, random_state=42)",
+        "risk_analyzer": "GradientBoostingRegressor(max_depth=4)"
+      },
+      "success_rate": 1.6666666666666667
+    }
+  },
+  "llm_insights": {
+    "risk_analysis": "Recommendations for immediate portfolio risks:\n\n1. Immediate risk factors:\n   - Market Risk Factors:\n      A) Stock picking: Ensure to diversify your investments across different stocks, avoid over-reliance on a single stock and always monitor the overall market trends. B) Fundamental Analysis: Keep track of the fundamentals of the companies you are investing in. Evaluate their business model, financial statement, and revenue growth.\n   - Portfolio Concentration Risk:\n      A) Sector Exposure: Ensure to diversify your portfolio across different sectors as well. Limit exposure to a single sector that may cause concentration risk. B) Fundamental Analysis: Use fundamental analysis to identify potential risks in individual stocks, such as over-reliance on a single company or industry trends that are not sustainable.\n   - Specific actions to mitigae risk:\n      A) Portfolio Diversification: Increase your portfolio's diversity by investing across different asset classes and geographical regions. B) Holding Periods: Ensure to keep the holding periods of your assets for a reasonable period, which helps in reducing the concentration risk of individual assets. C) Portfolio Management: Implement a regular review process to identify potential risks, monitor the portfolio's performance, and take corrective actions as necessary.\n\nFocus on:\n  1. Potential Market Risk Factors:\n      A) Volatility: Monitor the overall market trends and avoid over-reliance on any single stock or sector. B) Interest rate changes: Monitor interest rate fluctuations and take actions accordingly, such as implementing interest rate hedging strategies to mitigate risk. C) Central Bank Policy Changes: Stay informed about the central bank policy changes that may impact market trends.\n  2. Concerns Specific actions to mitigae risk:\n      A) Cybersecurity Risks: Monitor and implement cybersecurity best practices for your investment portfolio. B) Risk of Fraud: Ensure to monitor the reputation of any company you are investing in. Implement fraud detection measures to identify potential risks associated with frauds and take corrective actions as necessary. C) Political Risks: Monitor political developments that may impact your portfolio's value, such as trade wars or geopolitical conflicts.\n  3. Specific actions to mitigate risk:\n      A) Portfolio diversification: Increase your portfolio's diversity by investing across different asset classes and geographical regions. B) Hedging strategies: Implement interest rate hedging strategies to mitigate the risks associated with interest rate fluctuations. C) Sector Exposure: Evaluate the potential risks associated with sector exposure and diversify your portfolio across different sectors.",
+    "opportunity_analysis": "1. High-conviction opportunities: Based on the information provided, it is recommended to identify opportunities that are supported by high-converging price action and market trends. These can be identified by tracking the most recent price movements of the assets in question over a specified timeframe. This can help to confirm their quality as investment opportunities.\n\n2. Market trends supporting these opportunities: Once identified, it is crucial to monitor the market for potential trades that align with these opportunities. For example, if there are signs of a shift in demand or supply, this could indicate that an investment opportunity is occurring.\n\n3. Specific entry points or conditions: Finally, position sizing recommendations should be based on a thorough analysis of the risks and rewards associated with each investment. It is essential to take these risks into account when determining whether or not to enter into a trade, as it can help to mitigate potential losses.\n\nIn summary, identifying high-conviction opportunities in this portfolio requires a thorough analysis of the market and individual assets to identify potential trades that align with those opportunities. Once identified, position sizing recommendations should be based on a careful assessment of the risks and rewards associated with each investment.",
+    "strategy_recommendations": "Provide strategic portfolio recommendation for a professional portfolio strategist, taking into account the current metrics, asset allocations, risk analysis, and AI insights of their portfolio. The following recommendations could be based on the current market conditions and investment goals:\n\n1. Portfolio Rebala\u00f1cing Needs: \n- If the current portfolio is overweight in equities, consider rebalancing the asset allocation towards high-quality growth stocks or alternative assets like crypto-currency or real estate.\n- If the current portfolio has a significant allocation to low-quality stocks, consider reducing those positions and increasing exposure to higher-risk assets such as bonds or commodities.\n\n2. Asset Allocation Strategies: \n- Utilize diversification across asset classes like equities, bonds, and alternative investments.\n- Consider allocating more capital towards high-quality growth stocks or alternative assets that offer potential returns on investment.\n\n3. Risks Management Tactics: \n- Monitoring market risks such as inflation, interest rate changes, and economic downturns.\n- Implementing risk management strategies such as diversification, margin lending, and hedging to mitigate potential losses.\n\n4. Market Timing Considerations: \n- Avoid making investment decisions based on current market conditions or trends.\n- Consider following a long-term investment strategy with a focus on maintaining capital growth while avoiding speculative risks.\n\nConclusion:\n- The above strategies will help the portfolio professional to rebalance and manage risks more effectively, thereby enhancing portfolio performance and achieving investment goals."
+  },
+  "recommendations": [],
+  "metadata": {
+    "version": "2.0",
+    "analysis_type": "enhanced",
+    "components": [
+      "quant",
+      "ai",
+      "llm"
+    ]
+  }
+}

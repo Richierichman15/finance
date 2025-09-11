@@ -1,0 +1,208 @@
+{
+  "timestamp": "2025-07-24T22:12:47.863542",
+  "quant_analysis": {
+    "portfolio_metrics": {
+      "total_value": 317.6156283514577,
+      "number_of_positions": 10,
+      "max_position_size": 46.516097291806325,
+      "hhi_concentration": 0.2857370421850846,
+      "diversification_ratio": 0.7142629578149153,
+      "crypto_allocation": 99.5182856687685,
+      "cash_allocation": 0.4817143312315154,
+      "concentration_risk": "HIGH"
+    },
+    "asset_analysis": {
+      "BONK": {
+        "annual_return": 0.8270159267203061,
+        "annual_volatility": 1.2087149422293215,
+        "sharpe_ratio": 0.6842108902823523,
+        "sortino_ratio": 1.4698320034093009,
+        "max_drawdown": -0.8148148198051834,
+        "var_5": -0.09999994543031654,
+        "beta": 0,
+        "current_allocation": 3.3314916603524205
+      },
+      "CRV": {
+        "annual_return": 1.4423258540216821,
+        "annual_volatility": 1.020639332371891,
+        "sharpe_ratio": 1.4131591917683817,
+        "sortino_ratio": 2.5082670654536545,
+        "max_drawdown": -0.7076168463255434,
+        "var_5": -0.08488218846114834,
+        "beta": 0,
+        "current_allocation": 0.593077987949753
+      },
+      "ETH.F": {
+        "annual_return": 0.2824898877732051,
+        "annual_volatility": 0.6212337426027531,
+        "sharpe_ratio": 0.4547239925984555,
+        "sortino_ratio": 0.7074291544328289,
+        "max_drawdown": -0.6323957203281365,
+        "var_5": -0.05747405160367192,
+        "beta": 0,
+        "current_allocation": 10.970478580717552
+      },
+      "SOL.F": {
+        "annual_return": 0.27935305768685786,
+        "annual_volatility": 0.7115228095324132,
+        "sharpe_ratio": 0.3926129337588467,
+        "sortino_ratio": 0.6424512285361237,
+        "max_drawdown": -0.5970814063900629,
+        "var_5": -0.06440407386706268,
+        "beta": 0,
+        "current_allocation": 8.718255663025028
+      },
+      "USDG.F": {
+        "annual_return": 5.026332956737542,
+        "annual_volatility": 2.803012337854728,
+        "sharpe_ratio": 1.793189736932953,
+        "sortino_ratio": 3.0217736378146673,
+        "max_drawdown": -0.6617063999282282,
+        "var_5": -0.2204993083383425,
+        "beta": 0,
+        "current_allocation": 46.516097291806325
+      },
+      "XTZ.F": {
+        "annual_return": 0.46267191153911935,
+        "annual_volatility": 0.9038125981067018,
+        "sharpe_ratio": 0.5119113326239534,
+        "sortino_ratio": 0.9685225306416697,
+        "max_drawdown": -0.7256943790756973,
+        "var_5": -0.07325379005064883,
+        "beta": 0,
+        "current_allocation": 2.5669949380300214
+      },
+      "XXBT": {
+        "annual_return": 0.4760448192032444,
+        "annual_volatility": 0.404849015031966,
+        "sharpe_ratio": 1.175857669224308,
+        "sortino_ratio": 1.9041713911360898,
+        "max_drawdown": -0.2814447811620797,
+        "var_5": -0.036417561190282645,
+        "beta": 0,
+        "current_allocation": 21.368297351791103
+      },
+      "XXDG": {
+        "annual_return": 0.7522458346848396,
+        "annual_volatility": 0.837122317969727,
+        "sharpe_ratio": 0.8986092217792755,
+        "sortino_ratio": 1.5318735663531513,
+        "max_drawdown": -0.6958957607150816,
+        "var_5": -0.08120796108704612,
+        "beta": 0,
+        "current_allocation": 4.665439563074994
+      },
+      "ZUSD": {
+        "annual_return": 0.8494548527376279,
+        "annual_volatility": 0.9542216380779206,
+        "sharpe_ratio": 0.8902070743739123,
+        "sortino_ratio": 1.187626433515896,
+        "max_drawdown": -0.6167409818439489,
+        "var_5": -0.09514992532044549,
+        "beta": 0,
+        "current_allocation": 0.4817143312315154
+      }
+    },
+    "risk_metrics": {
+      "portfolio_var_5": -0.13310057044948387,
+      "portfolio_volatility": 2.2046830652490046,
+      "risk_level": "HIGH"
+    },
+    "performance_metrics": {
+      "performance_1m": 0.3720554725728426,
+      "performance_3m": 0.6031904874232871,
+      "annualized_3m": 2.4127619496931483
+    },
+    "correlation_analysis": {
+      "avg_correlation": 0.34104294721510026,
+      "highest_correlation": {
+        "asset1": "ETH.F",
+        "asset2": "XXDG",
+        "correlation": 0.8232080135090881
+      },
+      "lowest_correlation": {
+        "asset1": "USDG.F",
+        "asset2": "XXBT",
+        "correlation": -0.08602530645415611
+      },
+      "diversification_benefit": "MODERATE"
+    },
+    "technical_indicators": {
+      "BONK": {
+        "sma_20": 2.8563704563566717e-05,
+        "sma_50": 2.036548181422404e-05,
+        "rsi": 61.57995345135324,
+        "momentum_20d": 69.86363323044874,
+        "trend": "BULLISH"
+      },
+      "CRV": {
+        "sma_20": 0.7634921729564667,
+        "sma_50": 0.6542515087127686,
+        "rsi": 79.8884840031584,
+        "momentum_20d": 94.93858380121164,
+        "trend": "BULLISH"
+      },
+      "ETH.F": {
+        "sma_20": 3176.1053955078123,
+        "sma_50": 2773.933740234375,
+        "rsi": 84.5424598493,
+        "momentum_20d": 44.115037282828,
+        "trend": "BULLISH"
+      },
+      "SOL.F": {
+        "sma_20": 169.43436508178712,
+        "sma_50": 156.85318939208983,
+        "rsi": 60.19811201651656,
+        "momentum_20d": 21.524530712093952,
+        "trend": "BULLISH"
+      },
+      "USDG.F": {
+        "sma_20": 8.627553963661194,
+        "sma_50": 6.670732774734497,
+        "rsi": 38.63874538266715,
+        "momentum_20d": -3.351628159059187,
+        "trend": "NEUTRAL"
+      },
+      "XTZ.F": {
+        "sma_20": 0.7126969426870347,
+        "sma_50": 0.6142339968681335,
+        "rsi": 68.37093362434427,
+        "momentum_20d": 61.92245638106405,
+        "trend": "BULLISH"
+      },
+      "XXBT": {
+        "sma_20": 115876.428515625,
+        "sma_50": 110056.55625,
+        "rsi": 51.11859497572915,
+        "momentum_20d": 7.495782140529485,
+        "trend": "BULLISH"
+      },
+      "XXDG": {
+        "sma_20": 0.21175747886300086,
+        "sma_50": 0.18769681245088576,
+        "rsi": 61.82832920149152,
+        "momentum_20d": 37.948987614144166,
+        "trend": "BULLISH"
+      },
+      "ZUSD": {
+        "sma_20": 77.93899955749512,
+        "sma_50": 66.71705581665039,
+        "rsi": 68.30893483009092,
+        "momentum_20d": 15.363319687364834,
+        "trend": "BULLISH"
+      }
+    }
+  },
+  "ai_analysis": {},
+  "llm_insights": {},
+  "recommendations": [],
+  "metadata": {
+    "version": "2.0",
+    "analysis_type": "enhanced",
+    "components": [
+      "quant",
+      "ai",
+      "llm"
+    ]
+  }
+}

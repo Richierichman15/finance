@@ -11,6 +11,9 @@ import time
 import json
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional, Tuple
+import pandas as pd
+import numpy as np
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -38,6 +41,30 @@ class KrakenPortfolioAnalyzer:
         self.total_invested = 0
         self.total_gains_losses = 0
         self.portfolio_performance = 0
+        
+        # Historical performance tracking
+        self.timeframes = {
+            '7d': 7 * 24 * 60 * 60,    # 7 days in seconds
+            '30d': 30 * 24 * 60 * 60,  # 30 days
+            '90d': 90 * 24 * 60 * 60,  # 90 days
+            '1y': 365 * 24 * 60 * 60   # 1 year
+        }
+        self.historical_data = {}
+        self.performance_metrics = {}
+        
+        # Advanced performance metrics
+        self.performance_metrics = {
+            'sharpe_ratio': 0.0,
+            'sortino_ratio': 0.0,
+            'max_drawdown': 0.0,
+            'win_rate': 0.0,
+            'profit_factor': 0.0,
+            'recovery_factor': 0.0,
+            'risk_adjusted_return': 0.0,
+            'alpha': 0.0,
+            'beta': 0.0,
+            'correlation_matrix': None
+        }
     
     def load_asset_mappings(self):
         """Load previously discovered asset mappings from cache"""
@@ -679,38 +706,411 @@ class KrakenPortfolioAnalyzer:
         else:
             print("✅ Good cash management")
     
-    def run_analysis(self):
-        """Run complete portfolio analysis"""
-        print("🚀 Starting Kraken Portfolio Analysis...")
-        print("="*80)
-        
-        # Step 1: Get current prices
-        self.get_current_prices()
-        
-        # Step 2: Analyze balance
-        balance_data = self.analyze_balance()
-        if not balance_data:
-            print("❌ Failed to analyze portfolio")
-            return
-        
-        # Step 3: Calculate values
-        asset_values = self.calculate_asset_values(balance_data)
-        
-        # Step 4: Get trade history
-        trade_history = self.get_trade_history_summary()
-        
-        # Step 5: Calculate investment performance
-        asset_performance = self.calculate_investment_performance(asset_values)
-        
-        # Step 6: Display results
-        self.display_portfolio_summary(asset_values)
-        self.display_detailed_breakdown(asset_values)
-        self.display_trading_summary(trade_history)
-        self.display_recommendations(asset_values)
-        
-        print("\n" + "="*80)
-        print("✅ Portfolio Analysis Complete!")
-        print("="*80)
+    async def calculate_historical_performance(self, asset_values: dict) -> dict:
+        """Calculate historical performance across multiple timeframes"""
+        try:
+            print("\n📈 Calculating historical performance...")
+            now = int(time.time())
+            
+            for timeframe, seconds in self.timeframes.items():
+                start_time = now - seconds
+                
+                # Get historical trades and balance changes
+                trades = await self.get_historical_trades(start_time)
+                
+                # Calculate metrics for this timeframe
+                metrics = {
+                    'total_trades': len(trades),
+                    'volume': sum(float(t['vol']) for t in trades),
+                    'starting_balance': await self.get_historical_balance(start_time),
+                    'current_balance': self.portfolio_value,
+                    'pnl': 0.0,
+                    'pnl_percentage': 0.0
+                }
+                
+                # Calculate PnL if we have valid starting balance
+                if metrics['starting_balance'] > 0:
+                    metrics['pnl'] = metrics['current_balance'] - metrics['starting_balance']
+                    metrics['pnl_percentage'] = (metrics['pnl'] / metrics['starting_balance']) * 100
+                
+                # Add volatility calculation
+                price_changes = [float(t['price']) for t in trades]
+                if price_changes:
+                    metrics['volatility'] = self.calculate_volatility(price_changes)
+                else:
+                    metrics['volatility'] = 0.0
+                
+                self.performance_metrics[timeframe] = metrics
+            
+            return self.performance_metrics
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating historical performance: {e}")
+            return {}
+
+    async def get_historical_trades(self, start_time: int) -> list:
+        """Get historical trades from start_time to now"""
+        try:
+            trades_response = kraken_api.get_trades_history({
+                'start': str(start_time)
+            })
+            
+            if 'result' in trades_response and 'trades' in trades_response['result']:
+                return trades_response['result']['trades']
+            return []
+            
+        except Exception as e:
+            print(f"⚠️  Error fetching historical trades: {e}")
+            return []
+
+    async def get_historical_balance(self, timestamp: int) -> float:
+        """Calculate portfolio balance at a historical timestamp"""
+        try:
+            # Get ledger entries up to timestamp
+            ledger_response = kraken_api.get_ledgers({
+                'start': str(timestamp),
+                'type': 'trade'
+            })
+            
+            if 'result' in ledger_response and 'ledger' in ledger_response['result']:
+                ledger = ledger_response['result']['ledger']
+                
+                # Calculate balance from ledger entries
+                balance = 0.0
+                for entry in ledger.values():
+                    if float(entry['time']) <= timestamp:
+                        balance += float(entry['amount'])
+                
+                return balance
+                
+            return 0.0
+            
+        except Exception as e:
+            print(f"⚠️  Error fetching historical balance: {e}")
+            return 0.0
+
+    def calculate_volatility(self, price_changes: list) -> float:
+        """Calculate price volatility from a list of prices"""
+        try:
+            if len(price_changes) < 2:
+                return 0.0
+                
+            # Calculate daily returns
+            returns = []
+            for i in range(1, len(price_changes)):
+                daily_return = (price_changes[i] - price_changes[i-1]) / price_changes[i-1]
+                returns.append(daily_return)
+            
+            # Calculate standard deviation of returns
+            mean_return = sum(returns) / len(returns)
+            squared_diff_sum = sum((r - mean_return) ** 2 for r in returns)
+            volatility = (squared_diff_sum / (len(returns) - 1)) ** 0.5
+            
+            # Annualize volatility
+            return volatility * (365 ** 0.5) * 100
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating volatility: {e}")
+            return 0.0
+
+    def display_historical_performance(self):
+        """Display historical performance metrics"""
+        try:
+            print("\n=== HISTORICAL PERFORMANCE ANALYSIS ===")
+            print("-" * 40)
+            
+            for timeframe, metrics in self.performance_metrics.items():
+                print(f"\n📊 {timeframe.upper()} Performance:")
+                print(f"   Total Trades: {metrics['total_trades']}")
+                print(f"   Trading Volume: ${metrics['volume']:,.2f}")
+                print(f"   PnL: ${metrics['pnl']:,.2f} ({metrics['pnl_percentage']:+.2f}%)")
+                print(f"   Volatility: {metrics['volatility']:.2f}%")
+                
+        except Exception as e:
+            print(f"⚠️  Error displaying historical performance: {e}")
+
+    async def calculate_advanced_metrics(self, asset_values: dict) -> dict:
+        """Calculate advanced performance metrics"""
+        try:
+            print("\n📊 Calculating advanced performance metrics...")
+            
+            # Get historical price data for calculations
+            historical_data = {}
+            for asset in asset_values.keys():
+                if asset != 'ZUSD':  # Skip cash
+                    prices = await self._get_historical_prices(asset)
+                    if prices is not None:
+                        historical_data[asset] = prices
+            
+            # Calculate returns
+            returns = self._calculate_returns(historical_data)
+            
+            # 1. Sharpe Ratio (Risk-adjusted return)
+            risk_free_rate = 0.04  # 4% annual risk-free rate
+            self.performance_metrics['sharpe_ratio'] = self._calculate_sharpe_ratio(returns, risk_free_rate)
+            
+            # 2. Sortino Ratio (Downside risk-adjusted return)
+            self.performance_metrics['sortino_ratio'] = self._calculate_sortino_ratio(returns, risk_free_rate)
+            
+            # 3. Maximum Drawdown
+            self.performance_metrics['max_drawdown'] = self._calculate_max_drawdown(returns)
+            
+            # 4. Win Rate
+            self.performance_metrics['win_rate'] = self._calculate_win_rate(returns)
+            
+            # 5. Profit Factor
+            self.performance_metrics['profit_factor'] = self._calculate_profit_factor(returns)
+            
+            # 6. Recovery Factor
+            self.performance_metrics['recovery_factor'] = self._calculate_recovery_factor(returns)
+            
+            # 7. Risk-Adjusted Return
+            self.performance_metrics['risk_adjusted_return'] = self._calculate_risk_adjusted_return(returns)
+            
+            # 8. Alpha & Beta (vs BTC)
+            btc_prices = await self._get_historical_prices('BTC-USD')
+            if btc_prices is not None:
+                btc_returns = self._calculate_returns({'BTC-USD': btc_prices})
+                alpha, beta = self._calculate_alpha_beta(returns, btc_returns['BTC-USD'])
+                self.performance_metrics['alpha'] = alpha
+                self.performance_metrics['beta'] = beta
+            
+            # 9. Correlation Matrix
+            self.performance_metrics['correlation_matrix'] = self._calculate_correlation_matrix(returns)
+            
+            return self.performance_metrics
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating advanced metrics: {e}")
+            return {}
+
+    async def _get_historical_prices(self, asset: str, days: int = 365) -> Optional[pd.Series]:
+        """Get historical price data for an asset"""
+        try:
+            # Convert to Kraken symbol if needed
+            kraken_symbol = self._convert_to_kraken_symbol(asset)
+            if not kraken_symbol:
+                return None
+                
+            # Get OHLCV data from Kraken
+            ohlc = kraken_api.get_ohlc_data(kraken_symbol, interval=1440, since=int(time.time() - days * 86400))
+            if 'result' in ohlc and kraken_symbol in ohlc['result']:
+                prices = pd.Series([float(x[4]) for x in ohlc['result'][kraken_symbol]])  # Use closing prices
+                prices.index = pd.to_datetime([x[0] for x in ohlc['result'][kraken_symbol]], unit='s')
+                return prices
+                
+            return None
+            
+        except Exception as e:
+            print(f"⚠️  Error fetching historical prices for {asset}: {e}")
+            return None
+
+    def _calculate_returns(self, historical_data: dict) -> dict:
+        """Calculate daily returns for all assets"""
+        returns = {}
+        for asset, prices in historical_data.items():
+            if len(prices) > 1:
+                returns[asset] = prices.pct_change().dropna()
+        return returns
+
+    def _calculate_sharpe_ratio(self, returns: dict, risk_free_rate: float) -> float:
+        """Calculate portfolio Sharpe ratio"""
+        try:
+            # Calculate portfolio returns
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            
+            # Annualize metrics
+            avg_return = portfolio_returns.mean() * 252
+            std_dev = portfolio_returns.std() * np.sqrt(252)
+            
+            if std_dev == 0:
+                return 0.0
+                
+            return (avg_return - risk_free_rate) / std_dev
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating Sharpe ratio: {e}")
+            return 0.0
+
+    def _calculate_sortino_ratio(self, returns: dict, risk_free_rate: float) -> float:
+        """Calculate portfolio Sortino ratio"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            
+            # Calculate downside deviation
+            negative_returns = portfolio_returns[portfolio_returns < 0]
+            if len(negative_returns) == 0:
+                return 0.0
+                
+            downside_std = np.sqrt(np.mean(negative_returns ** 2)) * np.sqrt(252)
+            avg_return = portfolio_returns.mean() * 252
+            
+            if downside_std == 0:
+                return 0.0
+                
+            return (avg_return - risk_free_rate) / downside_std
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating Sortino ratio: {e}")
+            return 0.0
+
+    def _calculate_max_drawdown(self, returns: dict) -> float:
+        """Calculate maximum drawdown"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            cumulative = (1 + portfolio_returns).cumprod()
+            rolling_max = cumulative.expanding().max()
+            drawdowns = cumulative / rolling_max - 1
+            return float(drawdowns.min())
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating max drawdown: {e}")
+            return 0.0
+
+    def _calculate_win_rate(self, returns: dict) -> float:
+        """Calculate win rate"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            winning_days = len(portfolio_returns[portfolio_returns > 0])
+            total_days = len(portfolio_returns)
+            return winning_days / total_days if total_days > 0 else 0.0
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating win rate: {e}")
+            return 0.0
+
+    def _calculate_profit_factor(self, returns: dict) -> float:
+        """Calculate profit factor"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            gains = portfolio_returns[portfolio_returns > 0].sum()
+            losses = abs(portfolio_returns[portfolio_returns < 0].sum())
+            return gains / losses if losses != 0 else 0.0
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating profit factor: {e}")
+            return 0.0
+
+    def _calculate_recovery_factor(self, returns: dict) -> float:
+        """Calculate recovery factor"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            cumulative_return = (1 + portfolio_returns).prod() - 1
+            max_dd = self._calculate_max_drawdown(returns)
+            return cumulative_return / abs(max_dd) if max_dd != 0 else 0.0
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating recovery factor: {e}")
+            return 0.0
+
+    def _calculate_risk_adjusted_return(self, returns: dict) -> float:
+        """Calculate risk-adjusted return using modified Treynor ratio"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            avg_return = portfolio_returns.mean() * 252
+            downside_risk = portfolio_returns[portfolio_returns < 0].std() * np.sqrt(252)
+            return avg_return / downside_risk if downside_risk != 0 else 0.0
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating risk-adjusted return: {e}")
+            return 0.0
+
+    def _calculate_alpha_beta(self, returns: dict, market_returns: pd.Series) -> Tuple[float, float]:
+        """Calculate portfolio alpha and beta vs market (BTC)"""
+        try:
+            portfolio_returns = pd.concat(returns.values(), axis=1).mean(axis=1)
+            
+            # Calculate beta
+            covariance = portfolio_returns.cov(market_returns)
+            market_variance = market_returns.var()
+            beta = covariance / market_variance if market_variance != 0 else 0.0
+            
+            # Calculate alpha
+            risk_free_rate = 0.04 / 252  # Daily risk-free rate
+            alpha = portfolio_returns.mean() - (risk_free_rate + beta * (market_returns.mean() - risk_free_rate))
+            alpha *= 252  # Annualize
+            
+            return alpha, beta
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating alpha/beta: {e}")
+            return 0.0, 0.0
+
+    def _calculate_correlation_matrix(self, returns: dict) -> Optional[pd.DataFrame]:
+        """Calculate correlation matrix between assets"""
+        try:
+            return pd.DataFrame(returns).corr()
+            
+        except Exception as e:
+            print(f"⚠️  Error calculating correlation matrix: {e}")
+            return None
+
+    def display_advanced_metrics(self):
+        """Display advanced performance metrics"""
+        try:
+            print("\n=== ADVANCED PERFORMANCE METRICS ===")
+            print("-" * 40)
+            
+            print(f"\n📈 Risk-Adjusted Returns:")
+            print(f"   Sharpe Ratio: {self.performance_metrics['sharpe_ratio']:.2f}")
+            print(f"   Sortino Ratio: {self.performance_metrics['sortino_ratio']:.2f}")
+            print(f"   Risk-Adjusted Return: {self.performance_metrics['risk_adjusted_return']:.2f}")
+            
+            print(f"\n📊 Risk Metrics:")
+            print(f"   Maximum Drawdown: {self.performance_metrics['max_drawdown']*100:.1f}%")
+            print(f"   Beta vs BTC: {self.performance_metrics['beta']:.2f}")
+            print(f"   Alpha (annualized): {self.performance_metrics['alpha']*100:.1f}%")
+            
+            print(f"\n🎯 Trading Metrics:")
+            print(f"   Win Rate: {self.performance_metrics['win_rate']*100:.1f}%")
+            print(f"   Profit Factor: {self.performance_metrics['profit_factor']:.2f}")
+            print(f"   Recovery Factor: {self.performance_metrics['recovery_factor']:.2f}")
+            
+            if self.performance_metrics['correlation_matrix'] is not None:
+                print("\n📐 Asset Correlations:")
+                print(self.performance_metrics['correlation_matrix'].round(2))
+            
+        except Exception as e:
+            print(f"⚠️  Error displaying advanced metrics: {e}")
+
+    async def run_analysis(self):
+        """Main analysis runner with advanced metrics"""
+        try:
+            # Get current portfolio state
+            print("\n🔍 ANALYZING PORTFOLIO...")
+            
+            # Get EUR/USD rate for conversions
+            self.get_eurusd_rate()
+            
+            # Get current prices for all assets
+            await self.get_current_prices()
+            
+            # Analyze current balance
+            balance_data = await self.analyze_balance()
+            
+            # Calculate current asset values
+            asset_values = await self.calculate_asset_values(balance_data)
+            
+            # Calculate historical performance
+            await self.calculate_historical_performance(asset_values)
+            
+            # Calculate advanced metrics
+            await self.calculate_advanced_metrics(asset_values)
+            
+            # Display results
+            self.display_portfolio_summary(asset_values)
+            self.display_detailed_breakdown(asset_values)
+            self.display_historical_performance()
+            self.display_advanced_metrics()
+            
+            # Generate recommendations
+            self.display_recommendations(asset_values)
+            
+            # Save discovered mappings
+            self.save_asset_mappings()
+            
+        except Exception as e:
+            print(f"⚠️  Analysis failed: {e}")
 
 def main():
     analyzer = KrakenPortfolioAnalyzer()
