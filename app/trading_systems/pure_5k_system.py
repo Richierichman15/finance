@@ -56,11 +56,13 @@ class Pure5KLiveTradingSystem:
         # Per-trade equity curve for intraday risk realism
         self.intraday_equity_values = []  # floats
         self.intraday_equity_times = []   # timestamps or date strings
-        # Trading frictions
+        # Trading frictions (stricter for robustness checks)
         self.trading_costs = {
-            'fee_rate': 0.0010,      # 10 bps per side (0.10%)
-            'slippage_bps': 10       # 10 bps price slippage (0.10%)
+            'fee_rate': 0.0025,      # 25 bps per side (0.25%)
+            'slippage_bps': 25       # 25 bps price slippage (0.25%)
         }
+        # Backtest mode flag (ensures historical-only pricing paths)
+        self.backtest_mode = False
         # Container for computed performance metrics
         self.performance_metrics = {
             'daily_returns': None,
@@ -317,15 +319,21 @@ class Pure5KLiveTradingSystem:
             # Return most recent price
             if len(hist_data) > 0:
                 return float(hist_data['Close'].iloc[-1])
-            
+        
         except Exception as e:
             self.logger.warning(f"Cache lookup failed for {symbol}: {e}")
         
-        # Fallback to online
+        # In backtest mode, never use online prices; return 0.0 to signal missing data
+        if getattr(self, 'backtest_mode', False):
+            return 0.0
+        # Otherwise allow online fallback (e.g., live operations)
         return self.get_current_price_online(symbol, date)
 
     def get_current_price_online(self, symbol: str, date: str = None) -> float:
         """Get current price with enhanced Kraken integration for crypto"""
+        # In backtest mode, never fetch online prices; use cached historical instead
+        if getattr(self, 'backtest_mode', False):
+            return self.get_price_from_cache(symbol, date)
         # For crypto symbols, try Kraken first
         internal_symbol = symbol
         kraken_symbol = None
@@ -1066,12 +1074,9 @@ class Pure5KLiveTradingSystem:
         total_value = self.cash
         
         for symbol, position in self.positions.items():
-            # Use Kraken API for crypto, cache for stocks
-            if symbol in self.crypto_symbols:
-                current_price = self.get_current_price_online(symbol, date)
-            else:
-                current_price = self.get_price_from_cache(symbol, date)
-                
+            # Backtest should use historical OHLC for all assets (no live quotes)
+            current_price = self.get_price_from_cache(symbol, date)
+            
             if current_price > 0:
                 total_value += position['shares'] * current_price
         
@@ -1679,8 +1684,41 @@ class Pure5KLiveTradingSystem:
             if warn:
                 print(f"\n⚠️  Warnings: {warn}")
             
+            # Cost summary if in backtest mode
+            if getattr(self, 'backtest_mode', False):
+                fee_cost, slip_cost, total_cost = self._compute_cost_summary()
+                print("\n💸 Execution Costs (Backtest mode: ON)")
+                print(f"   Fees paid: ${fee_cost:,.2f}")
+                print(f"   Slippage cost: ${slip_cost:,.2f}")
+                print(f"   Total drag: ${total_cost:,.2f}")
+        
         except Exception as e:
             self.logger.error(f"Error displaying advanced metrics: {e}")
+
+    def _compute_cost_summary(self):
+        """Compute total fee and slippage costs from recorded trades.
+        Assumes recorded trade 'price' is execution-adjusted and fee_rate/slippage_bps are constant."""
+        fee_rate = float(self.trading_costs.get('fee_rate', 0.0))
+        slip_bps = float(self.trading_costs.get('slippage_bps', 0.0))
+        slip = slip_bps / 10000.0
+        total_fee = 0.0
+        total_slip = 0.0
+        for t in self.trades:
+            px_exec = float(t.get('price', 0.0))
+            sh = float(t.get('shares', 0.0))
+            act = t.get('action', '')
+            if px_exec <= 0 or sh <= 0:
+                continue
+            # Fees: symmetric per side
+            total_fee += sh * px_exec * fee_rate
+            # Slippage: reconstruct reference price implied by slippage model
+            if act == 'BUY':
+                ref = px_exec / (1.0 + slip) if slip > 0 else px_exec
+                total_slip += (px_exec - ref) * sh
+            elif act == 'SELL':
+                ref = px_exec / (1.0 - slip) if slip > 0 else px_exec
+                total_slip += (ref - px_exec) * sh
+        return total_fee, total_slip, (total_fee + total_slip)
 
     def _save_backtest_results(self, results: Dict) -> None:
         """Persist backtest results to JSON file"""
@@ -1694,50 +1732,64 @@ class Pure5KLiveTradingSystem:
         except Exception as e:
             self.logger.warning(f"Failed to save backtest results: {e}")
 
+
     def run_pure_5k_backtest(self, days: int = 30) -> Dict:
-        """Run complete backtest with advanced analytics"""
+        """Run complete backtest over the last `days` business days with advanced analytics."""
         try:
             print(f"\n🚀 Running Pure $5K Trading System Backtest ({days} days)")
             print("=" * 80)
-            
-            # Cache historical data
+            print("🔧 Backtest mode: ON (historical OHLC only; no live price fallbacks)")
+
+            # Ensure we have historical data cached for the requested span
             self.cache_historical_data(days)
-            
-            # Generate date range
+
+            # Reset state
+            self.cash = self.initial_balance
+            self.positions = {}
+            self.trades = []
+            self.daily_values = []
+            self.backtest_daily_snapshots = []
+            self.intraday_equity_values = []
+            self.intraday_equity_times = []
+            self.backtest_mode = True
+
+            # Build business-day date range
             end_date = datetime.now(pytz.UTC)
             start_date = end_date - timedelta(days=days)
             date_range = pd.date_range(start=start_date, end=end_date, freq='B')
-            
-            # Run simulation
+
             for i, date in enumerate(date_range):
                 date_str = date.strftime('%Y-%m-%d')
-                self.simulate_pure_trading_day(date_str, is_first_day=(i==0))
-                
+                is_first = (i == 0)
+                self.simulate_pure_trading_day(date_str, is_first_day=is_first)
+
                 # Record daily portfolio value
-                portfolio_value = self.calculate_portfolio_value(date_str)
-                self.daily_values.append(portfolio_value)
-            
-            # Calculate final results
-            final_value = self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d'))
-            total_return = ((final_value - self.initial_balance) / self.initial_balance) * 100
-            
-            # Calculate advanced metrics
+                pv = float(self.calculate_portfolio_value(date_str))
+                self.daily_values.append(pv)
+                self.backtest_daily_snapshots.append({
+                    'date': date_str,
+                    'portfolio_value': pv,
+                    'cash': float(self.cash),
+                    'positions': {k: {'shares': float(v['shares']), 'avg_price': float(v['avg_price']), 'category': v.get('category','unknown')} for k, v in self.positions.items()}
+                })
+
+            # Final results
+            final_value = float(self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d'))) if len(date_range) > 0 else float(self.initial_balance)
+            total_return = final_value - float(self.initial_balance)
+            return_percentage = (total_return / float(self.initial_balance)) * 100.0
+            target_met = return_percentage >= 10.0
+
+            # Metrics
             self.calculate_advanced_metrics()
-            
-            # Display results
-            print("\n📊 BACKTEST RESULTS:")
-            print("-" * 40)
-            print(f"Initial Balance: ${self.initial_balance:,.2f}")
-            print(f"Final Value: ${final_value:,.2f}")
-            print(f"Total Return: {total_return:+.1f}%")
-            print(f"Number of Trades: {len(self.trades)}")
-            
-            # Display advanced metrics
             self.display_advanced_metrics()
-            
-            # Save results
-            return_percentage = ((final_value - self.initial_balance) / self.initial_balance) * 100
-            target_met = return_percentage >= 10.0  # 10% target per system banner
+            # Cost summary
+            fee_cost, slip_cost, total_cost = self._compute_cost_summary()
+            print("\n💸 COST SUMMARY")
+            print("-" * 40)
+            print(f"Fees paid: ${fee_cost:,.2f}")
+            print(f"Slippage cost: ${slip_cost:,.2f}")
+            print(f"Total execution drag: ${total_cost:,.2f}")
+
             results = {
                 'initial_balance': self.initial_balance,
                 'final_value': final_value,
@@ -1746,17 +1798,181 @@ class Pure5KLiveTradingSystem:
                 'target_met': target_met,
                 'trades': self.trades,
                 'daily_values': self.daily_values,
-                'performance_metrics': self.performance_metrics
+                'performance_metrics': self.performance_metrics,
+                'costs': {
+                    'fee_cost': fee_cost,
+                    'slippage_cost': slip_cost,
+                    'total_drag': total_cost,
+                    'fee_rate': self.trading_costs.get('fee_rate', 0.0),
+                    'slippage_bps': self.trading_costs.get('slippage_bps', 0.0)
+                }
             }
-            
+
             self._save_backtest_results(results)
-            
             print("\n✅ Backtest completed successfully!")
             print("=" * 80)
-            
             return results
         except Exception as e:
             self.logger.error(f"Backtest failed: {e}")
+            return {}
+
+    def run_backtest_between(self, start_date: datetime, end_date: datetime) -> Dict:
+        """Run a backtest over a specific [start_date, end_date] range (business days).
+        Assumes historical data cache already covers this span. Resets internal state."""
+        try:
+            # Reset state
+            self.cash = self.initial_balance
+            self.positions = {}
+            self.trades = []
+            self.daily_values = []
+            self.backtest_daily_snapshots = []
+            self.intraday_equity_values = []
+            self.intraday_equity_times = []
+
+            # Build date range (business days) with correct tz handling
+            if not isinstance(start_date, pd.Timestamp):
+                start_date = pd.Timestamp(start_date)
+            if not isinstance(end_date, pd.Timestamp):
+                end_date = pd.Timestamp(end_date)
+            # Localize or convert to UTC
+            start_date = start_date.tz_localize(pytz.UTC) if start_date.tz is None else start_date.tz_convert(pytz.UTC)
+            end_date = end_date.tz_localize(pytz.UTC) if end_date.tz is None else end_date.tz_convert(pytz.UTC)
+            date_range = pd.date_range(start=start_date, end=end_date, freq='B')
+
+            for i, date in enumerate(date_range):
+                date_str = date.strftime('%Y-%m-%d')
+                is_first = (i == 0)
+                self.simulate_pure_trading_day(date_str, is_first_day=is_first)
+                # Track daily portfolio value (EOD)
+                pv = self.calculate_portfolio_value(date_str)
+                self.daily_values.append(float(pv))
+                self.backtest_daily_snapshots.append({
+                    'date': date_str,
+                    'portfolio_value': float(pv),
+                    'cash': float(self.cash),
+                    'positions': {k: {'shares': float(v['shares']), 'avg_price': float(v['avg_price']), 'category': v.get('category','unknown')} for k, v in self.positions.items()}
+                })
+
+            final_value = self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d')) if len(date_range) > 0 else self.initial_balance
+            total_return = final_value - self.initial_balance
+            return_percentage = (total_return / self.initial_balance) * 100
+            target_met = return_percentage >= 20.0
+
+            # Compute metrics
+            self.calculate_advanced_metrics()
+            self.display_advanced_metrics()
+            fee_cost, slip_cost, total_cost = self._compute_cost_summary()
+
+            results = {
+                'start_date': str(start_date),
+                'end_date': str(end_date),
+                'initial_balance': self.initial_balance,
+                'final_value': final_value,
+                'total_return': total_return,
+                'return_percentage': return_percentage,
+                'target_met': target_met,
+                'trades': self.trades,
+                'daily_values': self.daily_values,
+                'performance_metrics': self.performance_metrics,
+                'costs': {
+                    'fee_cost': fee_cost,
+                    'slippage_cost': slip_cost,
+                    'total_drag': total_cost,
+                    'fee_rate': self.trading_costs.get('fee_rate', 0.0),
+                    'slippage_bps': self.trading_costs.get('slippage_bps', 0.0)
+                }
+            }
+            return results
+        except Exception as e:
+            self.logger.error(f"Range backtest failed: {e}")
+            return {}
+
+    def walk_forward_backtest(self, total_days: int, train_days: int, test_days: int) -> Dict:
+        """Perform a walk-forward evaluation by rolling train/test windows across total_days.
+        We do not fit parameters; the 'train' period is used only to define the split and avoid lookahead.
+        Each test window starts with fresh capital and results are compounded across windows."""
+        try:
+            # Ensure cache covers the entire span
+            self.cache_historical_data(total_days)
+
+            end_all = datetime.now(pytz.UTC)
+            start_all = end_all - timedelta(days=total_days)
+            full_dates = pd.date_range(start=start_all, end=end_all, freq='B')
+            if len(full_dates) == 0:
+                raise ValueError("No business days in requested range")
+
+            splits = []
+            i = 0
+            while True:
+                train_start = start_all + timedelta(days=i)
+                train_end = train_start + timedelta(days=train_days)
+                test_end = train_end + timedelta(days=test_days)
+                if test_end > end_all:
+                    break
+                splits.append((train_start, train_end, train_end, test_end))
+                i += test_days
+
+            compounded = 1.0
+            window_results = []
+
+            for (tr_start, tr_end, te_start, te_end) in splits:
+                # Use a fresh system per test window to avoid state bleed
+                sys = Pure5KLiveTradingSystem(initial_balance=self.initial_balance, paper_trading=True)
+                # Reuse cached data to avoid re-downloading
+                sys.historical_data_cache = getattr(self, 'historical_data_cache', {})
+                # Run test-only window
+                res = sys.run_backtest_between(te_start, te_end)
+                if not res:
+                    continue
+                rp = float(res.get('return_percentage', 0.0)) / 100.0
+                compounded *= (1.0 + rp)
+                window_results.append({
+                    'train_start': str(tr_start),
+                    'train_end': str(tr_end),
+                    'test_start': str(te_start),
+                    'test_end': str(te_end),
+                    'return_pct': rp * 100.0,
+                    'final_value': res.get('final_value'),
+                    'n_trades': len(res.get('trades', [])),
+                    'metrics': {
+                        'sharpe': res.get('performance_metrics', {}).get('sharpe_ratio'),
+                        'sortino': res.get('performance_metrics', {}).get('sortino_ratio'),
+                        'max_dd': res.get('performance_metrics', {}).get('max_drawdown'),
+                        'intraday_max_dd': res.get('performance_metrics', {}).get('intraday_max_drawdown')
+                    }
+                })
+
+            overall = {
+                'strategy': 'Pure5KLiveTradingSystem',
+                'walk_forward': {
+                    'total_days': total_days,
+                    'train_days': train_days,
+                    'test_days': test_days,
+                    'splits': window_results,
+                    'compounded_return_pct': (compounded - 1.0) * 100.0
+                }
+            }
+            # Save a summary artifact
+            try:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                out_file = f"app/data/results/pure_5k_walk_forward_{timestamp}.json"
+                os.makedirs(os.path.dirname(out_file), exist_ok=True)
+                with open(out_file, 'w') as f:
+                    json.dump(overall, f, indent=2)
+                self.logger.info(f"Walk-forward results saved to {out_file}")
+            except Exception as save_err:
+                self.logger.warning(f"Failed to save walk-forward results: {save_err}")
+
+            # Print a brief summary
+            print("\n🧪 WALK-FORWARD SUMMARY")
+            print("-" * 60)
+            print(f"Splits: {len(window_results)} | Compounded return: {(compounded - 1.0) * 100.0:.2f}%")
+            for idx, wr in enumerate(window_results[:5]):
+                print(f"  [{idx+1}] Test {wr['test_start']}→{wr['test_end']} | Return: {wr['return_pct']:.2f}% | Trades: {wr['n_trades']}")
+
+            return overall
+        except Exception as e:
+            self.logger.error(f"Walk-forward backtest failed: {e}")
             return {}
 
 def main():
