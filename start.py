@@ -46,7 +46,7 @@ def main():
     print(f"🕐 Starting at {datetime.now()}")
     
     # Check environment variables to determine what to run
-    run_mode = os.getenv("RUN_MODE", "web").lower()
+    run_mode = os.getenv("RUN_MODE", "both").lower()  # Default to both for deployment
     
     if run_mode == "web":
         run_web_api()

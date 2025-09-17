@@ -235,5 +235,74 @@ def test_fundamentals_endpoint():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# Trading System Monitoring Endpoints
+@app.get("/api/trading/status")
+def get_trading_status():
+    """Get current trading system status"""
+    try:
+        from app.shared_state import trading_state
+        state = trading_state.get_current_state()
+        
+        return {
+            "status": "active",
+            "mode": "paper_trading",
+            "portfolio_value": state['portfolio_value'],
+            "cash": state['cash'],
+            "return_percentage": state['return_percentage'],
+            "crypto_symbols": state['crypto_symbols'],
+            "active_positions": state['active_positions'],
+            "last_update": state['last_update']
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/trading/positions")
+def get_trading_positions():
+    """Get current trading positions"""
+    try:
+        from app.shared_state import trading_state
+        positions = trading_state.get_positions()
+        
+        return {
+            "positions": positions,
+            "total_positions": len(positions)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/trading/recent-trades")
+def get_recent_trades(limit: int = 10):
+    """Get recent trading activity"""
+    try:
+        from app.shared_state import trading_state
+        state = trading_state.get_current_state()
+        
+        # Get recent trades from shared state (limited by the limit parameter)
+        recent_trades = state['recent_trades'][:limit]
+        
+        return {
+            "trades": recent_trades,
+            "count": len(recent_trades)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/trading/daily-snapshots")
+def get_daily_snapshots(limit: int = 7):
+    """Get recent daily portfolio snapshots"""
+    try:
+        from app.shared_state import trading_state
+        state = trading_state.get_current_state()
+        
+        # Get recent snapshots from shared state (limited by the limit parameter)
+        recent_snapshots = state['daily_snapshots'][:limit]
+        
+        return {
+            "snapshots": recent_snapshots,
+            "count": len(recent_snapshots)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

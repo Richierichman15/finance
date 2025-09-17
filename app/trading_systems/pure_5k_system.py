@@ -11,8 +11,16 @@ import sys
 import os
 import logging
 import yfinance as yf
+
+# Add parent directories to path for direct execution
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+sys.path.append(grandparent_dir)
+
 from app.database import SessionLocal
 from app.models.database_models import TradeRecord, DailySnapshot
+from app.shared_state import trading_state
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -614,11 +622,15 @@ class Pure5KLiveTradingSystem:
         print(f"\n🚀 DAY 1 PURE $5K ALLOCATION - {date}")
         print("=" * 60)
         
-        # Calculate allocation amounts
-        crypto_budget = self.cash * self.crypto_allocation
-        energy_budget = self.cash * self.energy_allocation  
-        tech_budget = self.cash * self.tech_allocation
-        etf_budget = self.cash * self.etf_allocation
+        # Reserve cash for trading operations (add small buffer to avoid exact match issues)
+        cash_reserve = self.alert_thresholds['min_cash_reserve'] + 1.0  # $501 instead of $500
+        available_for_investment = max(0, self.cash - cash_reserve)
+        
+        # Calculate allocation amounts from available investment cash
+        crypto_budget = available_for_investment * self.crypto_allocation
+        energy_budget = available_for_investment * self.energy_allocation  
+        tech_budget = available_for_investment * self.tech_allocation
+        etf_budget = available_for_investment * self.etf_allocation
         
         print(f"\n💰 ALLOCATION BUDGETS:")
         print(f"   🪙 Crypto: ${crypto_budget:.2f} ({self.crypto_allocation:.0%})")
@@ -627,9 +639,9 @@ class Pure5KLiveTradingSystem:
         print(f"   📈 ETFs: ${etf_budget:.2f} ({self.etf_allocation:.0%})")
         
         # Calculate per-symbol budgets
-        crypto_per_symbol = crypto_budget / len(self.crypto_symbols)
+        crypto_per_symbol = crypto_budget / len(self.crypto_symbols) if len(self.crypto_symbols) > 0 else 0
         energy_per_symbol = energy_budget / len(self.energy_stocks) if len(self.energy_stocks) > 0 else 0
-        tech_per_symbol = tech_budget / len(self.tech_stocks)
+        tech_per_symbol = tech_budget / len(self.tech_stocks) if len(self.tech_stocks) > 0 else 0
         etf_per_symbol = etf_budget / len(self.etf_symbols) if len(self.etf_symbols) > 0 else 0
         
         print(f"\n💵 PER-SYMBOL ALLOCATION:")
@@ -717,7 +729,7 @@ class Pure5KLiveTradingSystem:
         # so we avoid double-counting by not reducing cash again.
         print("\n📊 ALLOCATION SUMMARY:")
         print(f"   💰 Total Investment: ${total_invested:.2f} ({(total_invested/self.initial_balance)*100:.1f}% of portfolio)")
-        print(f"    Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
+        print(f"   💵 Cash Reserve: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio) - for trading operations")
         print(f"   📈 Number of Positions: {len([p for p in self.positions.values() if p['shares'] > 0])}")
         
         if failed_symbols:
@@ -725,7 +737,11 @@ class Pure5KLiveTradingSystem:
             for symbol in failed_symbols:
                 print(f"   - {symbol}")
         
-        self.logger.info(f"Day 1 allocation complete: ${total_invested:.2f} invested, ${self.cash:.2f} cash remaining")
+        self.logger.info(f"Day 1 allocation complete: ${total_invested:.2f} invested, ${self.cash:.2f} cash reserve maintained")
+        
+        # Update daily start value to current portfolio value after allocation
+        # This prevents false positive daily loss alerts during initial allocation
+        self.daily_start_value = self.calculate_portfolio_value(date)
 
     def _record_trade(self, date: str, symbol: str, action: str, shares: float, 
                  price: float, amount: float, strategy: str, reason: str = ""):
@@ -742,6 +758,10 @@ class Pure5KLiveTradingSystem:
             'category': self.positions.get(symbol, {}).get('category', 'unknown')
         }
         self.trades.append(trade)
+        
+        # Update shared state for dashboard
+        trading_state.add_trade(trade)
+        
         # Persist to DB
         try:
             db = SessionLocal()
@@ -1435,6 +1455,21 @@ class Pure5KLiveTradingSystem:
                 'active_positions': len([p for p in self.positions.values() if p['shares'] > 0])
             }
             self.live_daily_snapshots.append(live_snap)
+            
+            # Update shared state for dashboard
+            positions_with_prices = {}
+            for symbol, pos in self.positions.items():
+                if pos['shares'] > 0:
+                    current_price = self.get_live_price(symbol)
+                    positions_with_prices[symbol] = {
+                        'shares': pos['shares'],
+                        'avg_price': pos['avg_price'],
+                        'current_price': current_price,
+                        'category': pos.get('category', 'crypto')
+                    }
+            
+            trading_state.update_portfolio(portfolio_value, self.cash, positions_with_prices)
+            
             db = SessionLocal()
             db.add(DailySnapshot(
                 date=date_str,
@@ -1806,6 +1841,28 @@ class Pure5KLiveTradingSystem:
     def display_advanced_metrics(self):
         """Display advanced performance metrics"""
         try:
+            # Calculate current final values
+            if self.backtest_daily_snapshots:
+                final_portfolio = self.backtest_daily_snapshots[-1]['portfolio_value']
+                final_cash = self.backtest_daily_snapshots[-1]['cash']
+                final_return_pct = self.backtest_daily_snapshots[-1]['return_pct']
+            else:
+                final_portfolio = self.calculate_portfolio_value_live()
+                final_cash = self.cash
+                final_return_pct = ((final_portfolio - self.initial_balance) / self.initial_balance) * 100
+            
+            print("\n" + "=" * 60)
+            print("📊 FINAL BACKTEST RESULTS")
+            print("=" * 60)
+            print(f"💰 Starting Balance:    ${self.initial_balance:,.2f}")
+            print(f"💰 Final Portfolio:     ${final_portfolio:,.2f}")
+            print(f"💵 Final Cash:          ${final_cash:,.2f}")
+            print(f"📈 Total Return:        ${final_portfolio - self.initial_balance:+,.2f}")
+            print(f"📊 Return Percentage:   {final_return_pct:+.2f}%")
+            print(f"🎯 Days Traded:         {len(self.backtest_daily_snapshots) if self.backtest_daily_snapshots else 'N/A'}")
+            print(f"🔄 Total Trades:        {len(self.trades)}")
+            print("=" * 60)
+            
             print("\n=== ADVANCED PERFORMANCE METRICS ===")
             print("-" * 40)
             
@@ -2205,11 +2262,20 @@ class Pure5KLiveTradingSystem:
 def main():
     """Main execution function"""
     try:
+        import argparse
+        
+        # Parse command line arguments
+        parser = argparse.ArgumentParser(description='Run Pure5K Trading System Backtest')
+        parser.add_argument('days', type=int, nargs='?', default=45, 
+                          help='Number of days to backtest (default: 45)')
+        args = parser.parse_args()
+        
         # Create pure $5K trading system
         system = Pure5KLiveTradingSystem(initial_balance=5000.0)
         
-        # Run 45-day backtest
-        results = system.run_pure_5k_backtest(days=45)
+        # Run backtest with specified days
+        print(f"\n🚀 Running {args.days}-day backtest...")
+        results = system.run_pure_5k_backtest(days=args.days)
         
         # Save results
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
