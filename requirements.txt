@@ -14,3 +14,7 @@ pykrakenapi>=0.3.1
 ollama>=0.1.0
 scikit-learn>=1.3.0
 vaderSentiment>=3.3.2
+jinja2>=3.1.0
+sqlalchemy>=2.0.0
+alembic>=1.11.0
+pytz>=2023.3
