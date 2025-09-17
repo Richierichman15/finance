@@ -11,6 +11,8 @@ import sys
 import os
 import logging
 import yfinance as yf
+from app.database import SessionLocal
+from app.models.database_models import TradeRecord, DailySnapshot
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -48,7 +50,51 @@ class Pure5KLiveTradingSystem:
         self.cash = initial_balance
         self.positions = {}  # {symbol: {'shares': float, 'avg_price': float}}
         self.trades = []
+        # Backtest metric series: floats only (portfolio values)
         self.daily_values = []
+        # Snapshot logs (dicts) for richer reporting
+        self.backtest_daily_snapshots = []
+        self.live_daily_snapshots = []
+        # Per-trade equity curve for intraday risk realism
+        self.intraday_equity_values = []  # floats
+        self.intraday_equity_times = []   # timestamps or date strings
+        # Trading frictions (stricter for robustness checks)
+        self.trading_costs = {
+            'fee_rate': 0.0025,      # 25 bps per side (0.25%)
+            'slippage_bps': 25       # 25 bps price slippage (0.25%)
+        }
+        # Backtest mode flag (ensures historical-only pricing paths)
+        self.backtest_mode = False
+        # Risk controls
+        self.risk_controls = {
+            'daily_loss_halt_pct': 0.03,   # halt new buys if equity down >3% on the day
+            'max_position_pct': 0.25       # cap any single position at 25% of equity
+        }
+        self._day_start_equity = None
+        # Container for computed performance metrics
+        self.performance_metrics = {
+            'daily_returns': None,
+            'cumulative_returns': None,
+            'sharpe_ratio': 0.0,
+            'sortino_ratio': 0.0,
+            'max_drawdown': 0.0,
+            # Day-based metrics
+            'day_win_rate': 0.0,
+            'day_profit_factor': 0.0,
+            # Trade-based metrics
+            'trade_win_rate': 0.0,
+            'trade_profit_factor': 0.0,
+            'recovery_factor': 0.0,
+            'risk_adjusted_return': 0.0,
+            'beta': 0.0,
+            'alpha': 0.0,
+            'correlation_matrix': None,
+            # Sample sizes
+            'n_daily': 0,
+            'n_intraday': 0,
+            'n_trades_closed': 0,
+            'unstable_metrics_warning': ''
+        }
         self.historical_data_cache = {}
         self.logger = logging.getLogger(__name__)
         
@@ -98,38 +144,24 @@ class Pure5KLiveTradingSystem:
             'XLM-USD': 'XXLMZUSD'
         }
         
-        # EXPANDED STOCK UNIVERSE - FOCUSED ON TOP PERFORMERS
-        self.energy_stocks = [
-            'PLUG',    # Plug Power - Strong performer
-            'ENPH',    # Enphase Energy - Solar
-            'SEDG',    # SolarEdge - Solar tech
-            'NEE',     # NextEra Energy - Renewables
-            'RUN'      # Sunrun - Solar (reduced from 9 to 5)
-        ]
+        # CRYPTO-ONLY TRADING SYSTEM - NO STOCKS
+        self.energy_stocks = []  # Disabled for crypto-only trading
+        self.tech_stocks = []    # Disabled for crypto-only trading
+        self.etf_symbols = []    # Disabled for crypto-only trading
         
-        self.tech_stocks = [
-            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD', 'PLTR'  # Reduced from 9 to 7 strongest
-        ]
+        self.all_symbols = self.crypto_symbols  # Only crypto symbols
         
-        self.etf_symbols = [
-            'TAN',     # Solar ETF
-            'ICLN'     # Clean Energy ETF (reduced from 3 to 2)
-        ]
-        
-        self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
-        
-        # Portfolio allocation - MORE AGGRESSIVE
-        self.crypto_allocation = 0.60  # Increased from 0.30
-        self.energy_allocation = 0.10  # Increased from 0.30
-        self.tech_allocation = 0.20    # Reduced from 0.35 to focus on fewer, stronger positions
-        self.etf_allocation = 0.05     # Keep small for stability
+        # Portfolio allocation - CRYPTO-ONLY
+        self.crypto_allocation = 1.00  # 100% crypto allocation
+        self.energy_allocation = 0.00  # No energy stocks
+        self.tech_allocation = 0.00    # No tech stocks
+        self.etf_allocation = 0.00     # No ETFs
         
         # Update allocation explanation
-        print(f"\n💰 PORTFOLIO ALLOCATION STRATEGY:")
-        print(f"⚡ Energy: {self.energy_allocation:.0%} - Strong momentum in clean energy")
-        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - Increased for higher volatility returns")
-        print(f"💻 Tech: {self.tech_allocation:.0%} - Focused on strongest performers")
-        print(f"📈 ETFs: {self.etf_allocation:.0%} - Added for stability")
+        print(f"\n💰 CRYPTO-ONLY PORTFOLIO ALLOCATION STRATEGY:")
+        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - 100% cryptocurrency trading for maximum volatility returns")
+        print(f"📈 Trading 7 major cryptocurrencies: BTC, ETH, SOL, XRP, ADA, TRX, XLM")
+        print(f"🚫 No stock market trading - Pure cryptocurrency focus")
         
         # Market timezone handling
         self.market_tz = pytz.timezone('America/New_York')
@@ -281,15 +313,21 @@ class Pure5KLiveTradingSystem:
             # Return most recent price
             if len(hist_data) > 0:
                 return float(hist_data['Close'].iloc[-1])
-            
+        
         except Exception as e:
             self.logger.warning(f"Cache lookup failed for {symbol}: {e}")
         
-        # Fallback to online
+        # In backtest mode, never use online prices; return 0.0 to signal missing data
+        if getattr(self, 'backtest_mode', False):
+            return 0.0
+        # Otherwise allow online fallback (e.g., live operations)
         return self.get_current_price_online(symbol, date)
 
     def get_current_price_online(self, symbol: str, date: str = None) -> float:
         """Get current price with enhanced Kraken integration for crypto"""
+        # In backtest mode, never fetch online prices; use cached historical instead
+        if getattr(self, 'backtest_mode', False):
+            return self.get_price_from_cache(symbol, date)
         # For crypto symbols, try Kraken first
         internal_symbol = symbol
         kraken_symbol = None
@@ -308,7 +346,9 @@ class Pure5KLiveTradingSystem:
             for attempt in range(max_retries):
                 try:
                     self.logger.info(f"Fetching Kraken price for {internal_symbol} (Kraken: {kraken_symbol}) - Attempt {attempt + 1}/{max_retries}")
-                    price = kraken_api.get_price(kraken_symbol)
+                    # IMPORTANT: pass the internal symbol; KrakenAPI.get_price maps to Kraken pair internally.
+                    # Passing the Kraken pair here would cause a reverse mapping to a non-Kraken value and fail.
+                    price = kraken_api.get_price(internal_symbol)
                     
                     if price > 0:
                         self.logger.info(f"Successfully got Kraken price for {internal_symbol}: ${price:.2f}")
@@ -481,31 +521,32 @@ class Pure5KLiveTradingSystem:
 
     def update_trailing_stops(self, date: str) -> None:
         """Update trailing stop levels with adjusted volatility thresholds"""
-        for symbol, position in self.positions.items():
-            if position['shares'] > 0:
-                current_price = self.get_price_from_cache(symbol, date)
-                if current_price > 0:
-                    # Calculate volatility-based stop adjustment
-                    volatility = self._calculate_volatility(symbol, date)
+        for symbol, position in list(self.positions.items()):
+            if position['shares'] <= 0:
+                continue
+            current_price = self.get_price_from_cache(symbol, date)
+            if current_price > 0:
+                # Calculate volatility-based stop adjustment
+                volatility = self._calculate_volatility(symbol, date)
+                
+                # Adjusted stop percentages
+                if volatility > 0.03:  # High volatility
+                    stop_percentage = 0.92  # Was 0.90
+                elif volatility > 0.02:  # Medium volatility
+                    stop_percentage = 0.90  # Was 0.88
+                else:  # Low volatility
+                    stop_percentage = 0.88  # Was 0.85
+                
+                # Initialize trailing stop
+                if symbol not in self.trailing_stops:
+                    self.trailing_stops[symbol] = position['avg_price'] * stop_percentage
+                
+                # Update trailing stop with dynamic adjustment
+                potential_new_stop = current_price * stop_percentage
+                if potential_new_stop > self.trailing_stops[symbol]:
+                    self.trailing_stops[symbol] = potential_new_stop
                     
-                    # Adjusted stop percentages
-                    if volatility > 0.03:  # High volatility
-                        stop_percentage = 0.92  # Was 0.90
-                    elif volatility > 0.02:  # Medium volatility
-                        stop_percentage = 0.90  # Was 0.88
-                    else:  # Low volatility
-                        stop_percentage = 0.88  # Was 0.85
-                    
-                    # Initialize trailing stop
-                    if symbol not in self.trailing_stops:
-                        self.trailing_stops[symbol] = position['avg_price'] * stop_percentage
-                    
-                    # Update trailing stop with dynamic adjustment
-                    potential_new_stop = current_price * stop_percentage
-                    if potential_new_stop > self.trailing_stops[symbol]:
-                        self.trailing_stops[symbol] = potential_new_stop
-                        
-                        self.logger.info(f"Updated trailing stop for {symbol}: ${self.trailing_stops[symbol]:.2f} (Volatility: {volatility:.3f})")
+                    self.logger.info(f"Updated trailing stop for {symbol}: ${self.trailing_stops[symbol]:.2f} (Volatility: {volatility:.3f})")
 
     def _calculate_volatility(self, symbol: str, date: str, window: int = 14) -> float:
         """Calculate asset volatility for dynamic stop adjustment"""
@@ -609,21 +650,31 @@ class Pure5KLiveTradingSystem:
         for symbol in self.crypto_symbols:
             price = self.get_price_from_cache(symbol, date)
             if price > 0:
-                investment_amount = crypto_per_symbol
-                shares = investment_amount / price
-                portfolio_pct = (investment_amount / self.initial_balance) * 100
-                
-                self.positions[symbol] = {
-                    'shares': shares,
-                    'avg_price': price,
-                    'category': 'crypto'
-                }
-                
-                self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Crypto_Allocation')
-                total_invested += investment_amount
-                
-                print(f"   {symbol:<10} {shares:>12.8f} @ ${price:>8.4f} = ${investment_amount:>8.2f} ({portfolio_pct:>5.1f}%)")
-                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${price:.4f} = ${investment_amount:.2f}")
+                budget = crypto_per_symbol
+                shares = self._max_shares_for_budget(budget, 'BUY', price)
+                if shares <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                exec_price = self._adjusted_price('BUY', price)
+                fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                total_cost = shares * exec_price * (1.0 + fee_rate)
+                if total_cost > self.cash:
+                    # scale to actual available cash for this symbol
+                    shares = self._max_shares_for_budget(self.cash, 'BUY', price)
+                    exec_price = self._adjusted_price('BUY', price)
+                    total_cost = shares * exec_price * (1.0 + fee_rate)
+                if shares <= 0 or total_cost <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                # Deduct cash and add position
+                self.cash -= total_cost
+                self._add_to_position(symbol, shares, exec_price, 'crypto')
+                total_invested += total_cost
+                portfolio_pct = (total_cost / self.initial_balance) * 100
+                # Record trade with adjusted execution price and cash impact
+                self._record_trade(date, symbol, 'BUY', shares, exec_price, total_cost, 'Day1_Crypto_Allocation')
+                print(f"   {symbol:<10} {shares:>12.8f} @ ${exec_price:>8.4f} = ${total_cost:>8.2f} ({portfolio_pct:>5.1f}%)")
+                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${exec_price:.4f} = ${total_cost:.2f}")
             else:
                 failed_symbols.append(symbol)
                 self.logger.warning(f"Failed to get price for {symbol}")
@@ -635,27 +686,35 @@ class Pure5KLiveTradingSystem:
         for symbol in self.tech_stocks:
             price = self.get_price_from_cache(symbol, date)
             if price > 0:
-                investment_amount = tech_per_symbol
-                shares = investment_amount / price
-                portfolio_pct = (investment_amount / self.initial_balance) * 100
-                
-                self.positions[symbol] = {
-                    'shares': shares,
-                    'avg_price': price,
-                    'category': 'tech'
-                }
-                
-                self._record_trade(date, symbol, 'BUY', shares, price, investment_amount, 'Day1_Tech_Allocation')
-                total_invested += investment_amount
-                
-                print(f"   {symbol:<10} {shares:>12.8f} @ ${price:>8.4f} = ${investment_amount:>8.2f} ({portfolio_pct:>5.1f}%)")
-                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${price:.4f} = ${investment_amount:.2f}")
+                budget = tech_per_symbol
+                shares = self._max_shares_for_budget(budget, 'BUY', price)
+                if shares <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                exec_price = self._adjusted_price('BUY', price)
+                fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                total_cost = shares * exec_price * (1.0 + fee_rate)
+                if total_cost > self.cash:
+                    shares = self._max_shares_for_budget(self.cash, 'BUY', price)
+                    exec_price = self._adjusted_price('BUY', price)
+                    total_cost = shares * exec_price * (1.0 + fee_rate)
+                if shares <= 0 or total_cost <= 0:
+                    failed_symbols.append(symbol)
+                    continue
+                self.cash -= total_cost
+                self._add_to_position(symbol, shares, exec_price, 'tech')
+                total_invested += total_cost
+                portfolio_pct = (total_cost / self.initial_balance) * 100
+                self._record_trade(date, symbol, 'BUY', shares, exec_price, total_cost, 'Day1_Tech_Allocation')
+                print(f"   {symbol:<10} {shares:>12.8f} @ ${exec_price:>8.4f} = ${total_cost:>8.2f} ({portfolio_pct:>5.1f}%)")
+                self.logger.info(f"Allocated {shares:.8f} {symbol} @ ${exec_price:.4f} = ${total_cost:.2f}")
             else:
                 failed_symbols.append(symbol)
                 self.logger.warning(f"Failed to get price for {symbol}")
         
-        # Summary
-        self.cash -= total_invested
+        # Summary (fees+slippage already applied per-trade above when adding positions)
+        # total_invested here is a nominal target; cash was deducted per trade with costs
+        # so we avoid double-counting by not reducing cash again.
         print("\n📊 ALLOCATION SUMMARY:")
         print(f"   💰 Total Investment: ${total_invested:.2f} ({(total_invested/self.initial_balance)*100:.1f}% of portfolio)")
         print(f"    Remaining Cash: ${self.cash:.2f} ({(self.cash/self.initial_balance)*100:.1f}% of portfolio)")
@@ -669,7 +728,7 @@ class Pure5KLiveTradingSystem:
         self.logger.info(f"Day 1 allocation complete: ${total_invested:.2f} invested, ${self.cash:.2f} cash remaining")
 
     def _record_trade(self, date: str, symbol: str, action: str, shares: float, 
-                     price: float, amount: float, strategy: str, reason: str = ""):
+                 price: float, amount: float, strategy: str, reason: str = ""):
         """Helper to record trades and update tracking"""
         trade = {
             'date': date,
@@ -683,9 +742,82 @@ class Pure5KLiveTradingSystem:
             'category': self.positions.get(symbol, {}).get('category', 'unknown')
         }
         self.trades.append(trade)
+        # Persist to DB
+        try:
+            db = SessionLocal()
+            db.add(TradeRecord(
+                timestamp=datetime.now(),
+                date=date,
+                symbol=symbol,
+                action=action,
+                shares=shares,
+                price=price,
+                amount=amount,
+                strategy=strategy,
+                reason=reason,
+                category=trade['category']
+            ))
+            db.commit()
+            db.close()
+        except Exception as e:
+            self.logger.debug(f"Failed to persist trade to DB: {e}")
         
         # Update last trade date for cooldown tracking
         self.last_trade_date[symbol] = date
+
+        # Update intraday equity curve (post-trade) for more realistic drawdown
+        try:
+            eq_value = self.calculate_portfolio_value(date)
+            self.intraday_equity_values.append(float(eq_value))
+            self.intraday_equity_times.append(date)
+        except Exception as e:
+            self.logger.debug(f"Failed updating intraday equity after trade: {e}")
+
+    def _exceeded_daily_loss_halt(self, date: str) -> bool:
+        """Return True if today's equity drawdown exceeds the configured daily loss halt percent."""
+        try:
+            if self._day_start_equity is None or self._day_start_equity <= 0:
+                return False
+            current = float(self.calculate_portfolio_value(date))
+            dd = (self._day_start_equity - current) / self._day_start_equity
+            return dd >= float(self.risk_controls.get('daily_loss_halt_pct', 0.0))
+        except Exception:
+            return False
+
+    def _cap_position_size(self, symbol: str, desired_amount: float, date: str) -> float:
+        """Cap an intended buy amount so that the resulting position does not exceed max_position_pct of equity."""
+        try:
+            equity = float(self.calculate_portfolio_value(date))
+            cap_pct = float(self.risk_controls.get('max_position_pct', 1.0))
+            max_value = equity * cap_pct
+            current_price = self.get_price_from_cache(symbol, date)
+            current_value = 0.0
+            pos = self.positions.get(symbol)
+            if pos and current_price > 0:
+                current_value = float(pos['shares']) * float(current_price)
+            remaining = max_value - current_value
+            if remaining <= 0:
+                return 0.0
+            return min(desired_amount, remaining)
+        except Exception:
+            return desired_amount
+
+    def _adjusted_price(self, action: str, price: float) -> float:
+        """Apply slippage to execution price based on action.
+        Buys pay up (price increases), Sells receive less (price decreases)."""
+        slip = self.trading_costs.get('slippage_bps', 0) / 10000.0
+        if action == 'BUY':
+            return price * (1.0 + slip)
+        elif action == 'SELL':
+            return price * (1.0 - slip)
+        return price
+
+    def _max_shares_for_budget(self, budget: float, action: str, price: float) -> float:
+        """Compute shares purchasable given a cash budget including fees and slippage."""
+        adj_price = self._adjusted_price(action, price)
+        fee_rate = self.trading_costs.get('fee_rate', 0.0)
+        denom = adj_price * (1.0 + fee_rate)
+        return 0.0 if denom <= 0 else budget / denom
 
     def manage_cash_position(self, date: str) -> None:
         """Actively manage cash position with aggressive reinvestment"""
@@ -750,10 +882,15 @@ class Pure5KLiveTradingSystem:
                             if position_size >= 100:  # Minimum trade size
                                 shares = position_size / current_price
                                 
-                                # Execute reinvestment
-                                self._add_to_position(symbol, shares, current_price, 
-                                                    self._get_symbol_category(symbol))
-                                self.cash -= position_size
+                                # Execute reinvestment with costs and slippage
+                                exec_price = self._adjusted_price('BUY', current_price)
+                                fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                                shares = self._max_shares_for_budget(position_size, 'BUY', current_price)
+                                total_cost = shares * exec_price * (1.0 + fee_rate)
+                                if total_cost <= self.cash and shares > 0:
+                                    self._add_to_position(symbol, shares, exec_price, 
+                                                        self._get_symbol_category(symbol))
+                                    self.cash -= total_cost
                                 cash_to_deploy -= position_size
                                 
                                 self._record_trade(date, symbol, 'BUY', shares, current_price,
@@ -795,6 +932,12 @@ class Pure5KLiveTradingSystem:
         print(f"\n📅 {date}")
         print("-" * 50)
         
+        # Establish day start equity for daily loss halt
+        try:
+            self._day_start_equity = float(self.calculate_portfolio_value(date))
+        except Exception:
+            self._day_start_equity = float(self.initial_balance)
+
         if is_first_day:
             self.execute_day_1_intelligent_allocation(date)
         else:
@@ -856,10 +999,14 @@ class Pure5KLiveTradingSystem:
                 if signal in ["EXPLOSIVE_UP", "COUNTER_TREND_UP", "SHORT_TERM_UP"] and self.cash > 200:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
                     buy_amount = min(500 if category == 'crypto' else 400, self.cash * 0.5)  # Increased from 400/300
-                    shares = buy_amount / current_price
-                    
-                    self._add_to_position(symbol, shares, current_price, category)
-                    self.cash -= buy_amount
+                    # Compute shares to fit budget including costs/slippage
+                    shares = self._max_shares_for_budget(buy_amount, 'BUY', current_price)
+                    exec_price = self._adjusted_price('BUY', current_price)
+                    fee_rate = self.trading_costs.get('fee_rate', 0.0)
+                    total_cost = shares * exec_price * (1.0 + fee_rate)
+                    if total_cost <= self.cash and shares > 0:
+                        self._add_to_position(symbol, shares, exec_price, category)
+                        self.cash -= total_cost
                     self.last_trade_date[symbol] = date
                     
                     signal_type = "counter-trend" if signal == "COUNTER_TREND_UP" else "momentum"
@@ -872,7 +1019,15 @@ class Pure5KLiveTradingSystem:
                 # STRONG UP and TREND UP signals - buy moderately
                 elif signal in ["STRONG_UP", "TREND_UP"] and self.cash > 150:
                     category = self.positions.get(symbol, {}).get('category', 'unknown')
-                    buy_amount = min(350 if category == 'crypto' else 300, self.cash * 0.4)  # Increased from 250/200
+                    # Daily loss halt: skip new buys if exceeded
+                    if self._exceeded_daily_loss_halt(date):
+                        continue
+                    # Desired buy amount
+                    buy_amount = min(350 if category == 'crypto' else 300, self.cash * 0.4)
+                    # Per-position cap
+                    buy_amount = self._cap_position_size(symbol, buy_amount, date)
+                    if buy_amount <= 0:
+                        continue
                     shares = buy_amount / current_price
                     
                     self._add_to_position(symbol, shares, current_price, category)
@@ -913,13 +1068,16 @@ class Pure5KLiveTradingSystem:
         portfolio_value = self.calculate_portfolio_value(date)
         return_pct = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
         
-        self.daily_values.append({
+        # Store structured snapshot separately; keep daily_values as numeric series only
+        self.backtest_daily_snapshots.append({
             'date': date,
             'portfolio_value': portfolio_value,
             'cash': self.cash,
             'return_pct': return_pct,
-            'trades_count': len([t for t in self.trades if t['date'] == date])
+            'active_positions': len([p for p in self.positions.values() if p['shares'] > 0])
         })
+        
+        self.daily_values.append(portfolio_value)
         
         print(f"  📊 Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
 
@@ -973,12 +1131,9 @@ class Pure5KLiveTradingSystem:
         total_value = self.cash
         
         for symbol, position in self.positions.items():
-            # Use Kraken API for crypto, cache for stocks
-            if symbol in self.crypto_symbols:
-                current_price = self.get_current_price_online(symbol, date)
-            else:
-                current_price = self.get_price_from_cache(symbol, date)
-                
+            # Backtest should use historical OHLC for all assets (no live quotes)
+            current_price = self.get_price_from_cache(symbol, date)
+            
             if current_price > 0:
                 total_value += position['shares'] * current_price
         
@@ -1014,7 +1169,7 @@ class Pure5KLiveTradingSystem:
 
     def check_risk_management_rules(self, date: str) -> bool:
         """Check all risk management rules - return False if trading should stop"""
-        current_value = self.calculate_portfolio_value_live(date)
+        current_value = self.calculate_portfolio_value(date)
         daily_return = ((current_value - self.daily_start_value) / self.daily_start_value) * 100
         total_return = ((current_value - self.initial_balance) / self.initial_balance) * 100
         
@@ -1083,41 +1238,53 @@ class Pure5KLiveTradingSystem:
         if not self.paper_trading:
             self.logger.error("Paper trade called in live mode!")
             return False
-        
-        amount = shares * price
-        
+
+        fee_rate = self.trading_costs.get('fee_rate', 0.0)
+
         if action == 'BUY':
-            if amount > self.cash:
-                self.logger.warning(f"Insufficient cash for {symbol}: need ${amount:.2f}, have ${self.cash:.2f}")
+            # Apply slippage and fees and check cash
+            exec_price = self._adjusted_price('BUY', price)
+            total_cost = shares * exec_price * (1.0 + fee_rate)
+            if total_cost > self.cash:
+                # Scale shares to available cash
+                shares = self._max_shares_for_budget(self.cash, 'BUY', price)
+                exec_price = self._adjusted_price('BUY', price)
+                total_cost = shares * exec_price * (1.0 + fee_rate)
+            if shares <= 0:
+                self.logger.warning("BUY aborted: insufficient cash after costs")
                 return False
-            
-            self.cash -= amount
-            self._add_to_position(symbol, shares, price, self._get_symbol_category(symbol))
-            
+            self.cash -= total_cost
+            self._add_to_position(symbol, shares, exec_price, self._get_symbol_category(symbol))
+            recorded_amount = total_cost
+
         elif action == 'SELL':
             if symbol not in self.positions or self.positions[symbol]['shares'] < shares:
                 self.logger.warning(f"Insufficient shares to sell {symbol}")
                 return False
-            
+            exec_price = self._adjusted_price('SELL', price)
             self.positions[symbol]['shares'] -= shares
-            self.cash += amount
-        
-        # Record trade
-        self._record_trade(datetime.now().strftime('%Y-%m-%d'), symbol, action, 
-                          shares, price, amount, 'Live_Paper_Trading', reason)
-        
-        self.logger.info(f"PAPER {action}: {shares:.6f} {symbol} @ ${price:.4f} - {reason}")
+            proceeds_net = shares * exec_price * (1.0 - fee_rate)
+            self.cash += proceeds_net
+            recorded_amount = proceeds_net
+        else:
+            self.logger.warning(f"Unknown action: {action}")
+            return False
+
+        # Record trade with execution-adjusted price and actual cash amount
+        self._record_trade(datetime.now().strftime('%Y-%m-%d'), symbol, action,
+                           shares, exec_price, recorded_amount, 'Live_Paper_Trading', reason)
+        self.logger.info(f"PAPER {action}: {shares:.6f} {symbol} @ ${exec_price:.4f} - {reason}")
         return True
 
     def _get_symbol_category(self, symbol: str) -> str:
         """Get category for symbol"""
-        if symbol in self.crypto_symbols:
+        if symbol in getattr(self, 'crypto_symbols', []):
             return 'crypto'
-        elif symbol in self.energy_stocks:
+        if symbol in getattr(self, 'energy_stocks', []):
             return 'energy'
-        elif symbol in self.tech_stocks:
+        if symbol in getattr(self, 'tech_stocks', []):
             return 'tech'
-        elif symbol in self.etf_symbols:
+        if symbol in getattr(self, 'etf_symbols', []):
             return 'etf'
         return 'unknown'
 
@@ -1199,16 +1366,112 @@ class Pure5KLiveTradingSystem:
         portfolio_value = self.calculate_portfolio_value_live()
         return_pct = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
         
-        self.daily_values.append({
+        # Store live structured snapshot separately and persist to DB
+        live_snap = {
             'timestamp': current_time.isoformat(),
             'portfolio_value': portfolio_value,
             'cash': self.cash,
             'return_pct': return_pct,
             'active_positions': len([p for p in self.positions.values() if p['shares'] > 0])
-        })
+        }
+        self.live_daily_snapshots.append(live_snap)
+        try:
+            db = SessionLocal()
+            db.add(DailySnapshot(
+                date=date_str,
+                portfolio_value=float(portfolio_value),
+                cash=float(self.cash),
+                return_pct=float(return_pct),
+                active_positions=int(live_snap['active_positions'])
+            ))
+            db.commit()
+            db.close()
+        except Exception as e:
+            self.logger.debug(f"Failed to persist live daily snapshot: {e}")
         
         # Log current status
         self.logger.info(f"Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
+
+    def run_crypto_check_cycle(self) -> None:
+        """Run a lightweight cycle primarily for crypto outside stock market hours.
+        Applies the same risk controls. Records a snapshot and persists it."""
+        current_time = datetime.now(self.market_tz)
+        date_str = current_time.strftime('%Y-%m-%d')
+
+        # Update trailing stops and manage cash opportunistically for crypto symbols only
+        try:
+            self.update_trailing_stops(date_str)
+            # Optional: light reinvest only into crypto when signals are strong
+            signals = self.detect_market_momentum_signals(date_str)
+            for symbol in self.crypto_symbols:
+                sig = signals.get(symbol, 'NEUTRAL')
+                if sig in ("STRONG_UP", "TREND_UP") and self.cash > 50:
+                    if self._exceeded_daily_loss_halt(date_str):
+                        continue
+                    price = self.get_live_price(symbol)
+                    if price <= 0:
+                        continue
+                    buy_amount = min(200, self.cash * 0.2)
+                    buy_amount = self._cap_position_size(symbol, buy_amount, date_str)
+                    if buy_amount <= 0:
+                        continue
+                    shares = buy_amount / price
+                    self._add_to_position(symbol, shares, price, 'crypto')
+                    self.cash -= buy_amount
+                    self._record_trade(date_str, symbol, 'BUY', shares, price,
+                                       buy_amount, 'Crypto_OffHours', f"{sig} crypto check")
+        except Exception as e:
+            self.logger.debug(f"Crypto check encountered an issue: {e}")
+
+        # Snapshot and persist
+        try:
+            portfolio_value = self.calculate_portfolio_value_live()
+            return_pct = ((portfolio_value - self.initial_balance) / self.initial_balance) * 100
+            live_snap = {
+                'timestamp': current_time.isoformat(),
+                'portfolio_value': portfolio_value,
+                'cash': self.cash,
+                'return_pct': return_pct,
+                'active_positions': len([p for p in self.positions.values() if p['shares'] > 0])
+            }
+            self.live_daily_snapshots.append(live_snap)
+            db = SessionLocal()
+            db.add(DailySnapshot(
+                date=date_str,
+                portfolio_value=float(portfolio_value),
+                cash=float(self.cash),
+                return_pct=float(return_pct),
+                active_positions=int(live_snap['active_positions'])
+            ))
+            db.commit()
+            db.close()
+            self.logger.info(f"[Crypto Cycle] Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
+        except Exception as e:
+            self.logger.debug(f"Failed crypto snapshot persist: {e}")
+
+    def export_live_daily_csv(self) -> Optional[str]:
+        """Export accumulated live snapshots for the current day to CSV. Returns filepath or None."""
+        try:
+            os.makedirs('app/data/exports', exist_ok=True)
+            today = datetime.now(self.market_tz).strftime('%Y%m%d')
+            fp = f"app/data/exports/live_equity_{today}.csv"
+            import csv
+            with open(fp, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['timestamp', 'portfolio_value', 'cash', 'return_pct', 'active_positions'])
+                for snap in self.live_daily_snapshots:
+                    writer.writerow([
+                        snap.get('timestamp'),
+                        snap.get('portfolio_value'),
+                        snap.get('cash'),
+                        snap.get('return_pct'),
+                        snap.get('active_positions')
+                    ])
+            self.logger.info(f"Exported live equity CSV to {fp}")
+            return fp
+        except Exception as e:
+            self.logger.debug(f"Failed to export live CSV: {e}")
+            return None
 
     def detect_live_momentum_signals(self) -> Dict[str, str]:
         """Detect momentum signals using live data"""
@@ -1302,10 +1565,16 @@ class Pure5KLiveTradingSystem:
         with open(trades_file, 'w') as f:
             json.dump(self.trades, f, indent=2, default=str)
         
-        # Save daily values
-        values_file = f"app/data/live/daily_values_{timestamp}.json"
-        with open(values_file, 'w') as f:
-            json.dump(self.daily_values, f, indent=2, default=str)
+        # Save live snapshot values
+        live_values_file = f"app/data/live/daily_values_{timestamp}.json"
+        with open(live_values_file, 'w') as f:
+            json.dump(self.live_daily_snapshots, f, indent=2, default=str)
+        
+        # Save backtest snapshots if present
+        if self.backtest_daily_snapshots:
+            backtest_values_file = f"app/data/live/backtest_daily_values_{timestamp}.json"
+            with open(backtest_values_file, 'w') as f:
+                json.dump(self.backtest_daily_snapshots, f, indent=2, default=str)
 
     def start_live_monitoring(self, monitoring_interval: int = 300) -> None:
         """Start live monitoring with specified interval (seconds)"""
@@ -1371,9 +1640,10 @@ class Pure5KLiveTradingSystem:
             self.logger.info("Calculating advanced performance metrics...")
             
             # Calculate daily returns
-            portfolio_values = pd.Series(self.daily_values)
+            portfolio_values = pd.Series(self.daily_values, dtype=float)
             daily_returns = portfolio_values.pct_change().dropna()
             self.performance_metrics['daily_returns'] = daily_returns
+            self.performance_metrics['n_daily'] = int(len(daily_returns))
             
             # Calculate cumulative returns
             cumulative_returns = (1 + daily_returns).cumprod()
@@ -1386,7 +1656,9 @@ class Pure5KLiveTradingSystem:
             self.performance_metrics['sharpe_ratio'] = (avg_return - risk_free_rate) / std_dev if std_dev > 0 else 0
             
             # 2. Sortino Ratio
-            downside_returns = daily_returns[daily_returns < 0]
+            # Use daily risk-free threshold for downside; more conservative than 0
+            rf_daily = risk_free_rate / 252.0
+            downside_returns = daily_returns[daily_returns < rf_daily]
             downside_std = np.sqrt(np.mean(downside_returns ** 2)) * np.sqrt(252)
             self.performance_metrics['sortino_ratio'] = (avg_return - risk_free_rate) / downside_std if downside_std > 0 else 0
             
@@ -1394,16 +1666,75 @@ class Pure5KLiveTradingSystem:
             rolling_max = cumulative_returns.expanding().max()
             drawdowns = cumulative_returns / rolling_max - 1
             self.performance_metrics['max_drawdown'] = float(drawdowns.min())
+
+            # 3b. Intraday risk metrics from per-trade equity curve
+            if len(self.intraday_equity_values) > 1:
+                intraday_series = pd.Series(self.intraday_equity_values, dtype=float)
+                intraday_returns = intraday_series.pct_change().dropna()
+                self.performance_metrics['n_intraday'] = int(len(intraday_returns))
+                # Intraday max drawdown on equity curve
+                intraday_cum = (1 + intraday_returns).cumprod()
+                intraday_roll_max = intraday_cum.expanding().max()
+                intraday_dd = intraday_cum / intraday_roll_max - 1
+                self.performance_metrics['intraday_max_drawdown'] = float(intraday_dd.min())
+                # Intraday volatility (annualized proxy using per-trade steps ~ not time-normalized)
+                self.performance_metrics['intraday_volatility'] = float(intraday_returns.std())
+            else:
+                self.performance_metrics['n_intraday'] = 0
+                self.performance_metrics['intraday_max_drawdown'] = 0.0
+                self.performance_metrics['intraday_volatility'] = 0.0
             
-            # 4. Win Rate
+            # 4. Day-based Win Rate
             winning_days = len(daily_returns[daily_returns > 0])
             total_days = len(daily_returns)
-            self.performance_metrics['win_rate'] = winning_days / total_days if total_days > 0 else 0
+            self.performance_metrics['day_win_rate'] = winning_days / total_days if total_days > 0 else 0
             
-            # 5. Profit Factor
+            # 5. Day-based Profit Factor (kept for context)
             gains = daily_returns[daily_returns > 0].sum()
             losses = abs(daily_returns[daily_returns < 0].sum())
-            self.performance_metrics['profit_factor'] = gains / losses if losses != 0 else 0
+            self.performance_metrics['day_profit_factor'] = gains / losses if losses != 0 else 0
+
+            # 5b. Trade-based metrics using FIFO realized PnL
+            realized_pnls = []  # per-closed-lot PnL values
+            fifo_books: Dict[str, list] = {}
+            # Ensure chronological order; trades store date 'YYYY-MM-DD'
+            sorted_trades = sorted(self.trades, key=lambda t: (t.get('date', ''), t.get('symbol', ''), 0 if t.get('action')=='BUY' else 1))
+            for tr in sorted_trades:
+                sym = tr.get('symbol')
+                action = tr.get('action')
+                shares = float(tr.get('shares', 0) or 0)
+                price = float(tr.get('price', 0) or 0)
+                if not sym or shares <= 0 or price <= 0:
+                    continue
+                fifo_books.setdefault(sym, [])
+                if action == 'BUY':
+                    fifo_books[sym].append([shares, price])
+                elif action == 'SELL':
+                    remaining = shares
+                    while remaining > 0 and fifo_books[sym]:
+                        lot_shares, lot_price = fifo_books[sym][0]
+                        take = min(remaining, lot_shares)
+                        pnl = (price - lot_price) * take
+                        realized_pnls.append(pnl)
+                        lot_shares -= take
+                        remaining -= take
+                        if lot_shares <= 1e-12:
+                            fifo_books[sym].pop(0)
+                        else:
+                            fifo_books[sym][0][0] = lot_shares
+                    # If no lots to sell against, skip remainder (short sales not modeled)
+            closed = len(realized_pnls)
+            self.performance_metrics['n_trades_closed'] = int(closed)
+            if closed > 0:
+                wins = [p for p in realized_pnls if p > 0]
+                losses_p = [-p for p in realized_pnls if p < 0]
+                self.performance_metrics['trade_win_rate'] = len(wins) / closed if closed > 0 else 0
+                total_win = float(np.sum(wins)) if wins else 0.0
+                total_loss = float(np.sum(losses_p)) if losses_p else 0.0
+                self.performance_metrics['trade_profit_factor'] = (total_win / total_loss) if total_loss > 0 else (0 if total_win == 0 else float('inf'))
+            else:
+                self.performance_metrics['trade_win_rate'] = 0.0
+                self.performance_metrics['trade_profit_factor'] = 0.0
             
             # 6. Recovery Factor
             total_return = cumulative_returns.iloc[-1] - 1
@@ -1416,21 +1747,32 @@ class Pure5KLiveTradingSystem:
             
             # 8. Alpha & Beta vs BTC
             try:
-                btc_data = yf.download('BTC-USD', start=portfolio_values.index[0], end=portfolio_values.index[-1])
-                btc_returns = btc_data['Close'].pct_change().dropna()
-                
-                # Calculate beta
-                covariance = daily_returns.cov(btc_returns)
-                market_variance = btc_returns.var()
-                beta = covariance / market_variance if market_variance != 0 else 0
-                self.performance_metrics['beta'] = beta
-                
-                # Calculate alpha
-                market_return = btc_returns.mean() * 252
-                alpha = avg_return - (risk_free_rate + beta * (market_return - risk_free_rate))
-                self.performance_metrics['alpha'] = alpha
-                
+                # Only attempt alpha/beta if we can infer a date range
+                if isinstance(portfolio_values.index, pd.DatetimeIndex) and len(portfolio_values) > 2:
+                    start_dt = portfolio_values.index[0]
+                    end_dt = portfolio_values.index[-1]
+                    btc_data = yf.download('BTC-USD', start=start_dt, end=end_dt)
+                    if not btc_data.empty:
+                        btc_returns = btc_data['Close'].pct_change().dropna()
+                        if not btc_returns.empty and len(daily_returns) > 1:
+                            # Align lengths if needed
+                            min_len = min(len(daily_returns), len(btc_returns))
+                            dr = daily_returns.tail(min_len)
+                            br = btc_returns.tail(min_len)
+                            covariance = dr.cov(br)
+                            market_variance = br.var()
+                            beta = covariance / market_variance if market_variance != 0 else 0
+                            self.performance_metrics['beta'] = float(beta)
+                            market_return = br.mean() * 252
+                            alpha = avg_return - (risk_free_rate + beta * (market_return - risk_free_rate))
+                            self.performance_metrics['alpha'] = float(alpha)
+                else:
+                    # No datetime context in backtest list; skip alpha/beta
+                    self.performance_metrics['beta'] = 0.0
+                    self.performance_metrics['alpha'] = 0.0
             except Exception as e:
+                self.performance_metrics['beta'] = 0.0
+                self.performance_metrics['alpha'] = 0.0
                 self.logger.warning(f"Could not calculate alpha/beta: {e}")
             
             # 9. Asset Correlations
@@ -1445,6 +1787,16 @@ class Pure5KLiveTradingSystem:
             if not returns_df.empty:
                 self.performance_metrics['correlation_matrix'] = returns_df.corr()
             
+            # Stability warnings
+            warnings = []
+            if self.performance_metrics['n_daily'] < 30:
+                warnings.append("Daily sample < 30; Sharpe/Sortino/Drawdown may be unstable")
+            if self.performance_metrics['n_trades_closed'] < 10:
+                warnings.append("Closed trades < 10; trade metrics may be unstable")
+            if self.performance_metrics.get('n_intraday', 0) < 20:
+                warnings.append("Intraday equity points < 20; intraday drawdown/vol may be unstable")
+            self.performance_metrics['unstable_metrics_warning'] = '; '.join(warnings)
+
             return self.performance_metrics
             
         except Exception as e:
@@ -1458,87 +1810,396 @@ class Pure5KLiveTradingSystem:
             print("-" * 40)
             
             print(f"\n📈 Risk-Adjusted Returns:")
-            print(f"   Sharpe Ratio: {self.performance_metrics['sharpe_ratio']:.2f}")
-            print(f"   Sortino Ratio: {self.performance_metrics['sortino_ratio']:.2f}")
-            print(f"   Risk-Adjusted Return: {self.performance_metrics['risk_adjusted_return']:.2f}")
+            print(f"   Sharpe Ratio: {self.performance_metrics.get('sharpe_ratio', 0.0):.2f}")
+            print(f"   Sortino Ratio: {self.performance_metrics.get('sortino_ratio', 0.0):.2f}")
+            print(f"   Risk-Adjusted Return: {self.performance_metrics.get('risk_adjusted_return', 0.0):.2f}")
             
             print(f"\n📊 Risk Metrics:")
-            print(f"   Maximum Drawdown: {self.performance_metrics['max_drawdown']*100:.1f}%")
-            print(f"   Beta vs BTC: {self.performance_metrics['beta']:.2f}")
-            print(f"   Alpha (annualized): {self.performance_metrics['alpha']*100:.1f}%")
+            print(f"   Maximum Drawdown: {self.performance_metrics.get('max_drawdown', 0.0)*100:.1f}%")
+            print(f"   Intraday Max Drawdown (per-trade): {self.performance_metrics.get('intraday_max_drawdown', 0.0)*100:.1f}% (points={self.performance_metrics.get('n_intraday', 0)})")
+            print(f"   Intraday Volatility (per-trade std): {self.performance_metrics.get('intraday_volatility', 0.0):.4f}")
+            print(f"   Beta vs BTC: {self.performance_metrics.get('beta', 0.0):.2f}")
+            print(f"   Alpha (annualized): {self.performance_metrics.get('alpha', 0.0)*100:.1f}%")
             
             print(f"\n🎯 Trading Metrics:")
-            print(f"   Win Rate: {self.performance_metrics['win_rate']*100:.1f}%")
-            print(f"   Profit Factor: {self.performance_metrics['profit_factor']:.2f}")
-            print(f"   Recovery Factor: {self.performance_metrics['recovery_factor']:.2f}")
+            print(f"   Day Win Rate: {self.performance_metrics.get('day_win_rate', 0.0)*100:.1f}% (n={self.performance_metrics.get('n_daily', 0)})")
+            print(f"   Day Profit Factor: {self.performance_metrics.get('day_profit_factor', 0.0):.2f}")
+            print(f"   Trade Win Rate: {self.performance_metrics.get('trade_win_rate', 0.0)*100:.1f}% (closed={self.performance_metrics.get('n_trades_closed', 0)})")
+            tpf = self.performance_metrics.get('trade_profit_factor', 0.0)
+            print(f"   Trade Profit Factor: {'∞' if tpf == float('inf') else f'{tpf:.2f}'}")
+            print(f"   Recovery Factor: {self.performance_metrics.get('recovery_factor', 0.0):.2f}")
             
-            if self.performance_metrics['correlation_matrix'] is not None:
+            if self.performance_metrics.get('correlation_matrix') is not None:
                 print("\n📐 Asset Correlations:")
                 print(self.performance_metrics['correlation_matrix'].round(2))
+            warn = self.performance_metrics.get('unstable_metrics_warning')
+            if warn:
+                print(f"\n⚠️  Warnings: {warn}")
             
+            # Cost summary if in backtest mode
+            if getattr(self, 'backtest_mode', False):
+                fee_cost, slip_cost, total_cost = self._compute_cost_summary()
+                print("\n💸 Execution Costs (Backtest mode: ON)")
+                print(f"   Fees paid: ${fee_cost:,.2f}")
+                print(f"   Slippage cost: ${slip_cost:,.2f}")
+                print(f"   Total drag: ${total_cost:,.2f}")
+
         except Exception as e:
             self.logger.error(f"Error displaying advanced metrics: {e}")
 
+    def _compute_cost_summary(self):
+        """Compute total fee and slippage costs from recorded trades.
+        Assumes recorded trade 'price' is execution-adjusted and fee_rate/slippage_bps are constant."""
+        fee_rate = float(self.trading_costs.get('fee_rate', 0.0))
+        slip_bps = float(self.trading_costs.get('slippage_bps', 0.0))
+        slip = slip_bps / 10000.0
+        total_fee = 0.0
+        total_slip = 0.0
+        for t in self.trades:
+            px_exec = float(t.get('price', 0.0))
+            sh = float(t.get('shares', 0.0))
+            act = t.get('action', '')
+            if px_exec <= 0 or sh <= 0:
+                continue
+            # Fees: symmetric per side
+            total_fee += sh * px_exec * fee_rate
+            # Slippage: reconstruct reference price implied by slippage model
+            if act == 'BUY':
+                ref = px_exec / (1.0 + slip) if slip > 0 else px_exec
+                total_slip += (px_exec - ref) * sh
+            elif act == 'SELL':
+                ref = px_exec / (1.0 - slip) if slip > 0 else px_exec
+                total_slip += (ref - px_exec) * sh
+        return total_fee, total_slip, (total_fee + total_slip)
+
+    def _export_equity_curves(self, label: str) -> Dict[str, str]:
+        """Export daily and intraday equity curves to CSV for quick review.
+        Returns a dict with file paths for 'daily' and 'intraday'."""
+        try:
+            os.makedirs('app/data/exports', exist_ok=True)
+            ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+            base = f"app/data/exports/{label}_{ts}"
+
+            # Daily: prefer backtest_daily_snapshots if available
+            daily_fp = f"{base}_daily_equity.csv"
+            if self.backtest_daily_snapshots:
+                import csv
+                with open(daily_fp, 'w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(['date', 'portfolio_value', 'cash', 'return_pct'])
+                    for snap in self.backtest_daily_snapshots:
+                        writer.writerow([
+                            snap.get('date'),
+                            snap.get('portfolio_value'),
+                            snap.get('cash'),
+                            snap.get('return_pct')
+                        ])
+            else:
+                # Fallback: write index-based daily values
+                import csv
+                with open(daily_fp, 'w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(['index', 'portfolio_value'])
+                    for i, v in enumerate(self.daily_values):
+                        writer.writerow([i, v])
+
+            # Intraday equity (post-trade snapshots)
+            intraday_fp = f"{base}_intraday_equity.csv"
+            import csv
+            with open(intraday_fp, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['time', 'equity_value'])
+                for t, v in zip(self.intraday_equity_times, self.intraday_equity_values):
+                    writer.writerow([t, v])
+
+            self.logger.info(f"Exported equity curves: daily={daily_fp}, intraday={intraday_fp}")
+            return {'daily': daily_fp, 'intraday': intraday_fp}
+        except Exception as e:
+            self.logger.error(f"Failed to export equity curves: {e}")
+            return {}
+
+    def _save_backtest_results(self, results: Dict) -> None:
+        """Persist backtest results to JSON file"""
+        try:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            results_file = f"app/data/results/pure_5k_results_{timestamp}.json"
+            os.makedirs(os.path.dirname(results_file), exist_ok=True)
+            with open(results_file, 'w') as f:
+                json.dump(results, f, indent=2, default=str)
+            self.logger.info(f"Backtest results saved to {results_file}")
+        except Exception as e:
+            self.logger.warning(f"Failed to save backtest results: {e}")
+
+
     def run_pure_5k_backtest(self, days: int = 30) -> Dict:
-        """Run complete backtest with advanced analytics"""
+        """Run complete backtest over the last `days` business days with advanced analytics."""
         try:
             print(f"\n🚀 Running Pure $5K Trading System Backtest ({days} days)")
             print("=" * 80)
-            
-            # Cache historical data
+            print("🔧 Backtest mode: ON (historical OHLC only; no live price fallbacks)")
+
+            # Ensure we have historical data cached for the requested span
             self.cache_historical_data(days)
-            
-            # Generate date range
+
+            # Reset state
+            self.cash = self.initial_balance
+            self.positions = {}
+            self.trades = []
+            self.daily_values = []
+            self.backtest_daily_snapshots = []
+            self.intraday_equity_values = []
+            self.intraday_equity_times = []
+            self.backtest_mode = True
+
+            # Build business-day date range
             end_date = datetime.now(pytz.UTC)
             start_date = end_date - timedelta(days=days)
             date_range = pd.date_range(start=start_date, end=end_date, freq='B')
-            
-            # Run simulation
+
             for i, date in enumerate(date_range):
                 date_str = date.strftime('%Y-%m-%d')
-                self.simulate_pure_trading_day(date_str, is_first_day=(i==0))
-                
-                # Record daily portfolio value
-                portfolio_value = self.calculate_portfolio_value(date_str)
-                self.daily_values.append(portfolio_value)
-            
-            # Calculate final results
-            final_value = self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d'))
-            total_return = ((final_value - self.initial_balance) / self.initial_balance) * 100
-            
-            # Calculate advanced metrics
+                is_first = (i == 0)
+                self.simulate_pure_trading_day(date_str, is_first_day=is_first)
+
+                # Track daily portfolio value (EOD)
+                pv = self.calculate_portfolio_value(date_str)
+                self.daily_values.append(float(pv))
+                snapshot = {
+                    'date': date_str,
+                    'portfolio_value': float(pv),
+                    'cash': float(self.cash),
+                    'return_pct': ((float(pv) - float(self.initial_balance)) / float(self.initial_balance)) * 100.0
+                }
+                self.backtest_daily_snapshots.append(snapshot)
+                # Persist to DB
+                try:
+                    db = SessionLocal()
+                    db.add(DailySnapshot(
+                        date=snapshot['date'],
+                        portfolio_value=snapshot['portfolio_value'],
+                        cash=snapshot['cash'],
+                        return_pct=snapshot['return_pct'],
+                        active_positions=len([p for p in self.positions.values() if p['shares'] > 0])
+                    ))
+                    db.commit()
+                    db.close()
+                except Exception as e:
+                    self.logger.debug(f"Failed to persist daily snapshot: {e}")
+
+            final_value = self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d')) if len(date_range) > 0 else self.initial_balance
+            total_return = final_value - self.initial_balance
+            return_percentage = (total_return / self.initial_balance) * 100
+            target_met = return_percentage >= 10.0
+
+            # Metrics
             self.calculate_advanced_metrics()
-            
-            # Display results
-            print("\n📊 BACKTEST RESULTS:")
-            print("-" * 40)
-            print(f"Initial Balance: ${self.initial_balance:,.2f}")
-            print(f"Final Value: ${final_value:,.2f}")
-            print(f"Total Return: {total_return:+.1f}%")
-            print(f"Number of Trades: {len(self.trades)}")
-            
-            # Display advanced metrics
             self.display_advanced_metrics()
-            
-            # Save results
+            # Cost summary
+            fee_cost, slip_cost, total_cost = self._compute_cost_summary()
+
             results = {
                 'initial_balance': self.initial_balance,
                 'final_value': final_value,
                 'total_return': total_return,
+                'return_percentage': return_percentage,
+                'target_met': target_met,
                 'trades': self.trades,
                 'daily_values': self.daily_values,
-                'performance_metrics': self.performance_metrics
+                'performance_metrics': self.performance_metrics,
+                'costs': {
+                    'fee_cost': fee_cost,
+                    'slippage_cost': slip_cost,
+                    'total_drag': total_cost,
+                    'fee_rate': self.trading_costs.get('fee_rate', 0.0),
+                    'slippage_bps': self.trading_costs.get('slippage_bps', 0.0)
+                }
             }
-            
+
+            # Export equity curves
+            exports = self._export_equity_curves(label=f"pure5k_bt_{days}d")
+            if exports:
+                results['exports'] = exports
+
             self._save_backtest_results(results)
-            
             print("\n✅ Backtest completed successfully!")
             print("=" * 80)
-            
             return results
-            
         except Exception as e:
             self.logger.error(f"Backtest failed: {e}")
+            return {}
+
+    def run_backtest_between(self, start_date: datetime, end_date: datetime) -> Dict:
+        """Run a backtest over a specific [start_date, end_date] range (business days).
+        Assumes historical data cache already covers this span. Resets internal state."""
+        try:
+            # Reset state
+            self.cash = self.initial_balance
+            self.positions = {}
+            self.trades = []
+            self.daily_values = []
+            self.backtest_daily_snapshots = []
+            self.intraday_equity_values = []
+            self.intraday_equity_times = []
+
+            # Build date range (business days) with correct tz handling
+            if not isinstance(start_date, pd.Timestamp):
+                start_date = pd.Timestamp(start_date)
+            if not isinstance(end_date, pd.Timestamp):
+                end_date = pd.Timestamp(end_date)
+            # Localize or convert to UTC
+            start_date = start_date.tz_localize(pytz.UTC) if start_date.tz is None else start_date.tz_convert(pytz.UTC)
+            end_date = end_date.tz_localize(pytz.UTC) if end_date.tz is None else end_date.tz_convert(pytz.UTC)
+            date_range = pd.date_range(start=start_date, end=end_date, freq='B')
+
+            for i, date in enumerate(date_range):
+                date_str = date.strftime('%Y-%m-%d')
+                is_first = (i == 0)
+                self.simulate_pure_trading_day(date_str, is_first_day=is_first)
+                # Track daily portfolio value (EOD)
+                pv = self.calculate_portfolio_value(date_str)
+                self.daily_values.append(float(pv))
+                snapshot = {
+                    'date': date_str,
+                    'portfolio_value': float(pv),
+                    'cash': float(self.cash),
+                    'return_pct': ((float(pv) - float(self.initial_balance)) / float(self.initial_balance)) * 100.0
+                }
+                self.backtest_daily_snapshots.append(snapshot)
+                # Persist to DB
+                try:
+                    db = SessionLocal()
+                    db.add(DailySnapshot(
+                        date=snapshot['date'],
+                        portfolio_value=snapshot['portfolio_value'],
+                        cash=snapshot['cash'],
+                        return_pct=snapshot['return_pct'],
+                        active_positions=len([p for p in self.positions.values() if p['shares'] > 0])
+                    ))
+                    db.commit()
+                    db.close()
+                except Exception as e:
+                    self.logger.debug(f"Failed to persist daily snapshot: {e}")
+
+            final_value = self.calculate_portfolio_value(date_range[-1].strftime('%Y-%m-%d')) if len(date_range) > 0 else self.initial_balance
+            total_return = final_value - self.initial_balance
+            return_percentage = (total_return / self.initial_balance) * 100
+            target_met = return_percentage >= 20.0
+
+            # Compute metrics
+            self.calculate_advanced_metrics()
+            self.display_advanced_metrics()
+            fee_cost, slip_cost, total_cost = self._compute_cost_summary()
+
+            results = {
+                'start_date': str(start_date),
+                'end_date': str(end_date),
+                'initial_balance': self.initial_balance,
+                'final_value': final_value,
+                'total_return': total_return,
+                'return_percentage': return_percentage,
+                'target_met': target_met,
+                'trades': self.trades,
+                'daily_values': self.daily_values,
+                'performance_metrics': self.performance_metrics,
+                'costs': {
+                    'fee_cost': fee_cost,
+                    'slippage_cost': slip_cost,
+                    'total_drag': total_cost,
+                    'fee_rate': self.trading_costs.get('fee_rate', 0.0),
+                    'slippage_bps': self.trading_costs.get('slippage_bps', 0.0)
+                }
+            }
+            return results
+        except Exception as e:
+            self.logger.error(f"Range backtest failed: {e}")
+            return {}
+
+    def walk_forward_backtest(self, total_days: int, train_days: int, test_days: int) -> Dict:
+        """Perform a walk-forward evaluation by rolling train/test windows across total_days.
+        We do not fit parameters; the 'train' period is used only to define the split and avoid lookahead.
+        Each test window starts with fresh capital and results are compounded across windows."""
+        try:
+            # Ensure cache covers the entire span
+            self.cache_historical_data(total_days)
+
+            end_all = datetime.now(pytz.UTC)
+            start_all = end_all - timedelta(days=total_days)
+            full_dates = pd.date_range(start=start_all, end=end_all, freq='B')
+            if len(full_dates) == 0:
+                raise ValueError("No business days in requested range")
+
+            splits = []
+            i = 0
+            while True:
+                train_start = start_all + timedelta(days=i)
+                train_end = train_start + timedelta(days=train_days)
+                test_end = train_end + timedelta(days=test_days)
+                if test_end > end_all:
+                    break
+                splits.append((train_start, train_end, train_end, test_end))
+                i += test_days
+
+            compounded = 1.0
+            window_results = []
+
+            for (tr_start, tr_end, te_start, te_end) in splits:
+                # Use a fresh system per test window to avoid state bleed
+                sys = Pure5KLiveTradingSystem(initial_balance=self.initial_balance, paper_trading=True)
+                # Reuse cached data to avoid re-downloading
+                sys.historical_data_cache = getattr(self, 'historical_data_cache', {})
+                # Run test-only window
+                res = sys.run_backtest_between(te_start, te_end)
+                if not res:
+                    continue
+                rp = float(res.get('return_percentage', 0.0)) / 100.0
+                compounded *= (1.0 + rp)
+                window_results.append({
+                    'train_start': str(tr_start),
+                    'train_end': str(tr_end),
+                    'test_start': str(te_start),
+                    'test_end': str(te_end),
+                    'return_pct': rp * 100.0,
+                    'final_value': res.get('final_value'),
+                    'n_trades': len(res.get('trades', [])),
+                    'metrics': {
+                        'sharpe': res.get('performance_metrics', {}).get('sharpe_ratio'),
+                        'sortino': res.get('performance_metrics', {}).get('sortino_ratio'),
+                        'max_dd': res.get('performance_metrics', {}).get('max_drawdown'),
+                        'intraday_max_dd': res.get('performance_metrics', {}).get('intraday_max_drawdown')
+                    }
+                })
+
+            overall = {
+                'strategy': 'Pure5KLiveTradingSystem',
+                'walk_forward': {
+                    'total_days': total_days,
+                    'train_days': train_days,
+                    'test_days': test_days,
+                    'splits': window_results,
+                    'compounded_return_pct': (compounded - 1.0) * 100.0
+                }
+            }
+            # Save a summary artifact
+            try:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                out_file = f"app/data/results/pure_5k_walk_forward_{timestamp}.json"
+                os.makedirs(os.path.dirname(out_file), exist_ok=True)
+                with open(out_file, 'w') as f:
+                    json.dump(overall, f, indent=2)
+                self.logger.info(f"Walk-forward results saved to {out_file}")
+            except Exception as save_err:
+                self.logger.warning(f"Failed to save walk-forward results: {save_err}")
+
+            # Print a brief summary
+            print("\n🧪 WALK-FORWARD SUMMARY")
+            print("-" * 60)
+            print(f"Splits: {len(window_results)} | Compounded return: {(compounded - 1.0) * 100.0:.2f}%")
+            for idx, wr in enumerate(window_results[:5]):
+                print(f"  [{idx+1}] Test {wr['test_start']}→{wr['test_end']} | Return: {wr['return_pct']:.2f}% | Trades: {wr['n_trades']}")
+
+            return overall
+        except Exception as e:
+            self.logger.error(f"Walk-forward backtest failed: {e}")
             return {}
 
 def main():

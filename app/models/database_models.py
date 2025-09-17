@@ -75,4 +75,32 @@ class UserPreference(Base):
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String, unique=True, index=True)
     value = Column(String)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# New models for bot telemetry/persistence
+class TradeRecord(Base):
+    __tablename__ = "trade_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    date = Column(String, index=True)
+    symbol = Column(String, index=True)
+    action = Column(String, index=True)  # BUY / SELL
+    shares = Column(Float)
+    price = Column(Float)
+    amount = Column(Float)
+    strategy = Column(String)
+    reason = Column(String)
+    category = Column(String)
+
+
+class DailySnapshot(Base):
+    __tablename__ = "daily_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String, index=True)
+    portfolio_value = Column(Float)
+    cash = Column(Float)
+    return_pct = Column(Float)
+    active_positions = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
