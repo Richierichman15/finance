@@ -18,8 +18,9 @@ def is_market_hours(now_et: datetime) -> bool:
 
 def main(loop_seconds: int = 300):
     system = Pure5KLiveTradingSystem(initial_balance=5000.0, paper_trading=True)
-    print("🚀 Live runner started (paper mode)")
+    print("🚀 Live runner started (CRYPTO-ONLY mode)")
     print(f"⏱️  Loop interval: {loop_seconds}s")
+    print("📈 Trading only cryptocurrency - no stock market trading")
 
     last_report_date = None
 
@@ -27,17 +28,13 @@ def main(loop_seconds: int = 300):
         while True:
             now_et = datetime.now(MARKET_TZ)
 
-            if is_market_hours(now_et):
-                # Stock market hours: full live cycle
-                system.run_live_monitoring_cycle()
-            else:
-                # Off-hours: crypto-only lightweight checks
-                system.run_crypto_check_cycle()
+            # Always run crypto-only trading (24/7)
+            print(f"🔄 Running crypto trading cycle at {now_et.strftime('%Y-%m-%d %H:%M:%S ET')}")
+            system.run_crypto_check_cycle()
 
-            # Once per day after 16:05 ET, export live CSV and save daily report
+            # Once per day at 00:00 UTC, export live CSV and save daily report
             today_tag = now_et.strftime('%Y%m%d')
-            cutoff = now_et.replace(hour=16, minute=5, second=0, microsecond=0)
-            if last_report_date != today_tag and now_et >= cutoff:
+            if last_report_date != today_tag and now_et.hour == 0 and now_et.minute < 5:
                 # Export CSV of today's snapshots
                 system.export_live_daily_csv()
                 # Save text daily report into logs

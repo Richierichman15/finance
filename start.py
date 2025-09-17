@@ -22,14 +22,14 @@ def run_web_api():
     subprocess.run(cmd)
 
 def run_trading_system():
-    """Run the live trading system"""
-    print("📈 Starting live trading system...")
+    """Run the live crypto trading system"""
+    print("📈 Starting live CRYPTO-ONLY trading system...")
     from app.live_runner import main
     main()
 
 def run_both():
-    """Run both web API and trading system concurrently"""
-    print("🚀 Starting both web API and trading system...")
+    """Run both web API and crypto trading system concurrently"""
+    print("🚀 Starting both web API and CRYPTO-ONLY trading system...")
     
     # Start web API in a separate thread
     web_thread = threading.Thread(target=run_web_api, daemon=True)
@@ -38,7 +38,7 @@ def run_both():
     # Give web API time to start
     time.sleep(5)
     
-    # Start trading system in main thread
+    # Start crypto trading system in main thread
     run_trading_system()
 
 def main():

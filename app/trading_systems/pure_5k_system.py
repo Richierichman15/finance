@@ -144,38 +144,24 @@ class Pure5KLiveTradingSystem:
             'XLM-USD': 'XXLMZUSD'
         }
         
-        # EXPANDED STOCK UNIVERSE - FOCUSED ON TOP PERFORMERS
-        self.energy_stocks = [
-            'PLUG',    # Plug Power - Strong performer
-            'ENPH',    # Enphase Energy - Solar
-            'SEDG',    # SolarEdge - Solar tech
-            'NEE',     # NextEra Energy - Renewables
-            'RUN'      # Sunrun - Solar (reduced from 9 to 5)
-        ]
+        # CRYPTO-ONLY TRADING SYSTEM - NO STOCKS
+        self.energy_stocks = []  # Disabled for crypto-only trading
+        self.tech_stocks = []    # Disabled for crypto-only trading
+        self.etf_symbols = []    # Disabled for crypto-only trading
         
-        self.tech_stocks = [
-            'QQQ', 'NVDA', 'MSFT', 'GOOGL', 'TSLA', 'AMD', 'PLTR'  # Reduced from 9 to 7 strongest
-        ]
+        self.all_symbols = self.crypto_symbols  # Only crypto symbols
         
-        self.etf_symbols = [
-            'TAN',     # Solar ETF
-            'ICLN'     # Clean Energy ETF (reduced from 3 to 2)
-        ]
-        
-        self.all_symbols = self.crypto_symbols + self.energy_stocks + self.tech_stocks + self.etf_symbols
-        
-        # Portfolio allocation - MORE AGGRESSIVE
-        self.crypto_allocation = 0.60  # Increased from 0.30
-        self.energy_allocation = 0.10  # Increased from 0.30
-        self.tech_allocation = 0.20    # Reduced from 0.35 to focus on fewer, stronger positions
-        self.etf_allocation = 0.05     # Keep small for stability
+        # Portfolio allocation - CRYPTO-ONLY
+        self.crypto_allocation = 1.00  # 100% crypto allocation
+        self.energy_allocation = 0.00  # No energy stocks
+        self.tech_allocation = 0.00    # No tech stocks
+        self.etf_allocation = 0.00     # No ETFs
         
         # Update allocation explanation
-        print(f"\n💰 PORTFOLIO ALLOCATION STRATEGY:")
-        print(f"⚡ Energy: {self.energy_allocation:.0%} - Strong momentum in clean energy")
-        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - Increased for higher volatility returns")
-        print(f"💻 Tech: {self.tech_allocation:.0%} - Focused on strongest performers")
-        print(f"📈 ETFs: {self.etf_allocation:.0%} - Added for stability")
+        print(f"\n💰 CRYPTO-ONLY PORTFOLIO ALLOCATION STRATEGY:")
+        print(f"🪙 Crypto: {self.crypto_allocation:.0%} - 100% cryptocurrency trading for maximum volatility returns")
+        print(f"📈 Trading 7 major cryptocurrencies: BTC, ETH, SOL, XRP, ADA, TRX, XLM")
+        print(f"🚫 No stock market trading - Pure cryptocurrency focus")
         
         # Market timezone handling
         self.market_tz = pytz.timezone('America/New_York')

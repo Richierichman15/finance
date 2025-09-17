@@ -53,11 +53,13 @@ Your trading system is now ready for Railway deployment! Here's what I've set up
 
 ### Trading System Features:
 
+- 🪙 **CRYPTO-ONLY Trading**: 100% cryptocurrency focus (BTC, ETH, SOL, XRP, ADA, TRX, XLM)
 - 📊 Real-time portfolio monitoring
 - 🤖 AI-powered trading decisions
 - 📈 Live performance tracking
 - 💰 Paper trading mode (safe testing)
 - 📱 Web dashboard for monitoring
+- ⏰ 24/7 crypto trading (no stock market hours restrictions)
 
 ### Troubleshooting:
 
