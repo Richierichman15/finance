@@ -613,7 +613,7 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
         # Save to file
         date_str = datetime.now().strftime('%Y%m%d')
         report_file = f"app/reports/daily_report_{date_str}.txt"
-        with open(report_file, 'w') as f:
+        with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report)
         
         print(report)
@@ -640,7 +640,7 @@ class Pure5KLiveSystem(Pure5KTradingSystem):
         # Save final report
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         final_report_file = f"app/reports/final_report_{timestamp}.txt"
-        with open(final_report_file, 'w') as f:
+        with open(final_report_file, 'w', encoding='utf-8') as f:
             f.write(final_report)
         
         print(f"\n📊 Live monitoring stopped")

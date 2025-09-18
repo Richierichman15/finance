@@ -1,0 +1,42 @@
+{
+  "cash": 995.9937499999997,
+  "positions": {
+    "BTC-USD": {
+      "shares": 0.0036373462547454154,
+      "avg_price": 117492.29824999999,
+      "category": "crypto"
+    },
+    "ETH-USD": {
+      "shares": 0.09316852181037004,
+      "avg_price": 4586.9588,
+      "category": "crypto"
+    },
+    "SOL-USD": {
+      "shares": 3.7705167143739047,
+      "avg_price": 246.28193994235212,
+      "category": "crypto"
+    },
+    "XRP-USD": {
+      "shares": 137.27476723324276,
+      "avg_price": 3.1131735249999997,
+      "category": "crypto"
+    },
+    "ADA-USD": {
+      "shares": 1015.7152660079367,
+      "avg_price": 0.9142426052635628,
+      "category": "crypto"
+    },
+    "TRX-USD": {
+      "shares": 1235.4140267945597,
+      "avg_price": 0.34592465499999997,
+      "category": "crypto"
+    },
+    "XLM-USD": {
+      "shares": 1077.6549510429963,
+      "avg_price": 0.39656494,
+      "category": "crypto"
+    }
+  },
+  "initial_balance": 5000.0,
+  "last_updated": "2025-09-18T05:34:17.553716"
+}

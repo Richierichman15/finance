@@ -437,7 +437,7 @@ def main():
         
         os.makedirs(os.path.dirname(results_file), exist_ok=True)
         
-        with open(results_file, 'w') as f:
+        with open(results_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, default=str)
         
         print(f"\n💾 Results saved to: {results_file}")

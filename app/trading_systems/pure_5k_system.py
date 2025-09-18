@@ -44,7 +44,7 @@ from app.services.kraken import kraken_api
 # Enhanced logging configuration
 logging.basicConfig(
     level=logging.INFO, 
-    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('app/logs/live_trading.log'),
         logging.StreamHandler()
@@ -56,6 +56,7 @@ class Pure5KLiveTradingSystem:
     def __init__(self, initial_balance: float = 5000.0, paper_trading: bool = True):
         self.initial_balance = initial_balance
         self.cash = initial_balance
+        self.portfolio_file = 'app/data/live/portfolio_state.json'
         self.positions = {}  # {symbol: {'shares': float, 'avg_price': float}}
         self.trades = []
         # Backtest metric series: floats only (portfolio values)
@@ -106,6 +107,9 @@ class Pure5KLiveTradingSystem:
         self.historical_data_cache = {}
         self.logger = logging.getLogger(__name__)
         
+        # Try to load existing portfolio state
+        self._load_portfolio_state()
+        
         # LIVE TRADING FEATURES
         self.paper_trading = paper_trading
         self.live_mode = not paper_trading
@@ -116,7 +120,7 @@ class Pure5KLiveTradingSystem:
             'max_total_loss': -10.0,
             'max_position_size': 0.30,
             'max_trades_per_day': 10,
-            'min_cash_reserve': 500.0
+            'min_cash_reserve': 300.0  # Protective mode threshold
         }
         
         # Enhanced risk management
@@ -344,7 +348,7 @@ class Pure5KLiveTradingSystem:
         if internal_symbol in self.crypto_symbols:
             # Map to Kraken format using the symbol_map
             kraken_symbol = self.symbol_map.get(internal_symbol, internal_symbol)
-            self.logger.info(f"Mapping {internal_symbol} to Kraken format: {kraken_symbol}")
+            # Mapping to Kraken format (silent)
 
         if kraken_symbol and kraken_symbol in ['XXBTZUSD', 'XETHZUSD', 'XXRPZUSD', 'SOLUSD', 'ADAUSD', 'TRXUSD', 'XXLMZUSD']:
             max_retries = 3
@@ -353,13 +357,13 @@ class Pure5KLiveTradingSystem:
 
             for attempt in range(max_retries):
                 try:
-                    self.logger.info(f"Fetching Kraken price for {internal_symbol} (Kraken: {kraken_symbol}) - Attempt {attempt + 1}/{max_retries}")
+                    # Fetching Kraken price (silent)
                     # IMPORTANT: pass the internal symbol; KrakenAPI.get_price maps to Kraken pair internally.
                     # Passing the Kraken pair here would cause a reverse mapping to a non-Kraken value and fail.
                     price = kraken_api.get_price(internal_symbol)
                     
                     if price > 0:
-                        self.logger.info(f"Successfully got Kraken price for {internal_symbol}: ${price:.2f}")
+                        print(f"✅ {internal_symbol}: ${price:.2f}")
                         return price
                     else:
                         last_error = "Zero price returned"
@@ -616,6 +620,11 @@ class Pure5KLiveTradingSystem:
         return ((current_price - avg_price) / avg_price) * 100
 
     def execute_day_1_intelligent_allocation(self, date: str) -> None:
+        # Check if we already have positions - if so, skip allocation
+        if self.positions and sum(pos.get('shares', 0) for pos in self.positions.values() if isinstance(pos, dict)) > 0:
+            print("📂 Portfolio already has positions - skipping allocation")
+            self._save_portfolio_state()
+            return
         """Execute intelligent Day 1 allocation across expanded universe"""
         self.logger.info("Starting Day 1 portfolio allocation")
         
@@ -623,7 +632,7 @@ class Pure5KLiveTradingSystem:
         print("=" * 60)
         
         # Reserve cash for trading operations (add small buffer to avoid exact match issues)
-        cash_reserve = self.alert_thresholds['min_cash_reserve'] + 1.0  # $501 instead of $500
+        cash_reserve = self.alert_thresholds['min_cash_reserve'] + 1.0  # $301 instead of $300
         available_for_investment = max(0, self.cash - cash_reserve)
         
         # Calculate allocation amounts from available investment cash
@@ -758,6 +767,9 @@ class Pure5KLiveTradingSystem:
             'category': self.positions.get(symbol, {}).get('category', 'unknown')
         }
         self.trades.append(trade)
+        
+        # Save portfolio state after each trade
+        self._save_portfolio_state()
         
         # Update shared state for dashboard
         trading_state.add_trade(trade)
@@ -1317,18 +1329,13 @@ class Pure5KLiveTradingSystem:
         current_time = datetime.now(self.market_tz)
         date_str = current_time.strftime('%Y-%m-%d')
         
-        # Check if market is open (simplified - weekdays 9:30 AM - 4:00 PM ET)
-        if current_time.weekday() >= 5:  # Weekend
-            self.logger.info("Market closed - weekend")
-            return
+        # Crypto trades 24/7 - no market hours restrictions
+        # Note: This system is crypto-focused, so we trade around the clock
         
         market_open = current_time.replace(hour=9, minute=30, second=0, microsecond=0)
         market_close = current_time.replace(hour=16, minute=0, second=0, microsecond=0)
         
-        if current_time < market_open or current_time > market_close:
-            # Crypto trades 24/7, but let's focus on market hours for now
-            self.logger.info("Outside market hours")
-            return
+        
         
         # Check risk management rules
         if not self.check_risk_management_rules(date_str):
@@ -1410,7 +1417,8 @@ class Pure5KLiveTradingSystem:
             self.logger.debug(f"Failed to persist live daily snapshot: {e}")
         
         # Log current status
-        self.logger.info(f"Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
+        # Reduced logging - only log to file, not console
+        self.logger.debug(f"Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
 
     def run_crypto_check_cycle(self) -> None:
         """Run a lightweight cycle primarily for crypto outside stock market hours.
@@ -1480,7 +1488,22 @@ class Pure5KLiveTradingSystem:
             ))
             db.commit()
             db.close()
-            self.logger.info(f"[Crypto Cycle] Portfolio: ${portfolio_value:,.2f} | Cash: ${self.cash:.2f} | Return: {return_pct:+.2f}%")
+            # Clean portfolio summary every 5 minutes
+            print(f"\n📊 PORTFOLIO UPDATE - {datetime.now().strftime('%H:%M:%S')}")
+            print(f"💰 Total Value: ${portfolio_value:,.2f} | 💵 Cash: ${self.cash:.2f} | 📈 Return: {return_pct:+.2f}%")
+            print(f"🔄 Active Positions: {len([p for p in self.positions.values() if p > 0])}")
+            
+            # Show top 3 positions
+            sorted_positions = sorted(self.positions.items(), key=lambda x: x[1], reverse=True)
+            for i, (symbol, shares) in enumerate(sorted_positions[:3]):
+                if shares > 0:
+                    current_price = self._get_current_price(symbol)
+                    value = shares * current_price if current_price else 0
+                    print(f"   {symbol}: {shares:.4f} shares @ ${current_price:.2f} = ${value:.2f}")
+            print()
+            
+            # Save portfolio state after each cycle
+            self._save_portfolio_state()
         except Exception as e:
             self.logger.debug(f"Failed crypto snapshot persist: {e}")
 
@@ -1654,7 +1677,7 @@ class Pure5KLiveTradingSystem:
         # Save report
         date_str = datetime.now().strftime('%Y%m%d')
         report_file = f"app/logs/daily_report_{date_str}.txt"
-        with open(report_file, 'w') as f:
+        with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report)
         
         self.logger.info(f"Daily report saved to {report_file}")
@@ -2259,6 +2282,50 @@ class Pure5KLiveTradingSystem:
             self.logger.error(f"Walk-forward backtest failed: {e}")
             return {}
 
+    def _save_portfolio_state(self):
+        """Save current portfolio state to file"""
+        try:
+            state = {
+                'cash': self.cash,
+                'positions': self.positions,
+                'initial_balance': self.initial_balance,
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.portfolio_file), exist_ok=True)
+            
+            with open(self.portfolio_file, 'w') as f:
+                json.dump(state, f, indent=2)
+                
+            self.logger.debug(f"Portfolio state saved to {self.portfolio_file}")
+        except Exception as e:
+            self.logger.error(f"Failed to save portfolio state: {e}")
+    
+    def _load_portfolio_state(self):
+        """Load portfolio state from file if it exists"""
+        try:
+            if os.path.exists(self.portfolio_file):
+                with open(self.portfolio_file, 'r') as f:
+                    state = json.load(f)
+                
+                self.cash = state.get('cash', self.initial_balance)
+                self.positions = state.get('positions', {})
+                
+                print(f"📂 Loaded existing portfolio state:")
+                print(f"   💵 Cash: ${self.cash:.2f}")
+                active_positions = len([p for p in self.positions.values() if isinstance(p, dict) and p.get('shares', 0) > 0])
+                print(f"   📊 Positions: {active_positions}")
+                print(f"   📅 Last updated: {state.get('last_updated', 'Unknown')}")
+                return True
+            else:
+                print("🆕 No existing portfolio found - starting fresh")
+                return False
+        except Exception as e:
+            self.logger.error(f"Failed to load portfolio state: {e}")
+            print("⚠️  Failed to load portfolio state - starting fresh")
+            return False
+
 def main():
     """Main execution function"""
     try:
@@ -2284,7 +2351,7 @@ def main():
         # Create results directory if it doesn't exist
         os.makedirs(os.path.dirname(results_file), exist_ok=True)
         
-        with open(results_file, 'w') as f:
+        with open(results_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, default=str)
         
         print(f"\n💾 Results saved to: {results_file}")
