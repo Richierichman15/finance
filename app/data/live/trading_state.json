@@ -5,6 +5,42 @@
   "positions": {},
   "recent_trades": [
     {
+      "date": "2025-09-19",
+      "symbol": "XRP-USD",
+      "action": "SELL",
+      "shares": 125.36557200568296,
+      "price": 3.0227272439002992,
+      "amount": 377.99856512385077,
+      "strategy": "Live_Paper_Trading",
+      "reason": "Live exit signal - REVERSAL_DOWN",
+      "category": "crypto",
+      "timestamp": "2025-09-19T05:05:17.141258"
+    },
+    {
+      "date": "2025-09-18",
+      "symbol": "XRP-USD",
+      "action": "BUY",
+      "shares": 71.66785277622886,
+      "price": 3.1252675253152846,
+      "amount": 224.54116592285146,
+      "strategy": "Live_Paper_Trading",
+      "reason": "Live strong momentum - STRONG_UP",
+      "category": "crypto",
+      "timestamp": "2025-09-18T12:05:42.419448"
+    },
+    {
+      "date": "2025-09-18",
+      "symbol": "XLM-USD",
+      "action": "BUY",
+      "shares": 625.0467465761462,
+      "price": 0.4009700096398592,
+      "amount": 251.25156249999995,
+      "strategy": "Live_Paper_Trading",
+      "reason": "Live strong momentum - STRONG_UP",
+      "category": "crypto",
+      "timestamp": "2025-09-18T10:38:08.339383"
+    },
+    {
       "date": "2025-09-18",
       "symbol": "ADA-USD",
       "action": "BUY",
@@ -207,42 +243,6 @@
       "reason": "",
       "category": "crypto",
       "timestamp": "2025-09-18T05:24:59.704219"
-    },
-    {
-      "date": "2025-09-18",
-      "symbol": "BTC-USD",
-      "action": "BUY",
-      "shares": 0.005451941390742397,
-      "price": 117593.25,
-      "amount": 642.7142857142856,
-      "strategy": "Day1_Crypto_Allocation",
-      "reason": "",
-      "category": "crypto",
-      "timestamp": "2025-09-18T05:24:57.227455"
-    },
-    {
-      "date": "2025-09-18",
-      "symbol": "XLM-USD",
-      "action": "BUY",
-      "shares": 1609.6428781555626,
-      "price": 0.3982942525,
-      "amount": 642.7142857142856,
-      "strategy": "Day1_Crypto_Allocation",
-      "reason": "",
-      "category": "crypto",
-      "timestamp": "2025-09-18T05:22:41.774070"
-    },
-    {
-      "date": "2025-09-18",
-      "symbol": "TRX-USD",
-      "action": "BUY",
-      "shares": 1852.924273937837,
-      "price": 0.3459998425,
-      "amount": 642.7142857142857,
-      "strategy": "Day1_Crypto_Allocation",
-      "reason": "",
-      "category": "crypto",
-      "timestamp": "2025-09-18T05:22:40.793956"
     }
   ],
   "daily_snapshots": [],
